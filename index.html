@@ -2,1552 +2,452 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Baz Sport</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baz Sport</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Inter:wght@400;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #1a202c;
+            --secondary-color: #2d3748;
+            --accent-color: #4a5568;
+            --text-color: #e2e8f0;
+            --highlight-color: #38b2ac;
+            --danger-color: #e53e3e;
+            --danger-hover-color: #c53030;
+        }
 
-  <!-- React and Babel for JSX in the browser -->
-  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--primary-color);
+            color: var(--text-color);
+        }
 
-  <!-- Supabase Client Library -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+        body[dir="rtl"] {
+            font-family: 'Cairo', sans-serif;
+        }
 
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-    }
-  </style>
+        .hidden {
+            display: none !important;
+        }
+
+        .modal {
+            background-color: rgba(0, 0, 0, 0.6);
+        }
+
+        .modal-content {
+            background-color: var(--secondary-color);
+        }
+
+        .admin-only,
+        body:not(.admin-mode) .admin-only-block {
+            display: none;
+        }
+
+        body.admin-mode .admin-only,
+        body.admin-mode .admin-only-block {
+            display: flex;
+        }
+
+        body.admin-mode .admin-only-block {
+            display: block;
+        }
+
+        .btn-admin {
+            background-color: #d69e2e;
+            color: white;
+        }
+
+        .btn-admin.active,
+        .btn-admin:hover {
+            background-color: #975a16;
+        }
+
+        .btn-primary {
+            background-color: var(--highlight-color);
+            color: var(--primary-color);
+            transition: background-color 0.3s;
+        }
+
+        .btn-primary:hover {
+            background-color: #319795;
+        }
+
+        .btn-secondary {
+            background-color: var(--accent-color);
+            color: white;
+            transition: background-color 0.3s;
+        }
+
+        .btn-secondary:hover {
+            background-color: #2d3748;
+        }
+
+        .btn-danger {
+            background-color: var(--danger-color);
+            color: white;
+            transition: background-color 0.3s;
+        }
+
+        .btn-danger:hover {
+            background-color: var(--danger-hover-color);
+        }
+
+        .nav-link {
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.3s;
+        }
+
+        .nav-link.active {
+            background-color: var(--highlight-color);
+            color: var(--primary-color);
+        }
+
+        .nav-link:hover:not(.active) {
+            background-color: var(--secondary-color);
+        }
+
+        .category-tab {
+            padding: 8px 16px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .category-tab.active {
+            color: var(--highlight-color);
+            border-bottom-color: var(--highlight-color);
+        }
+
+        .sale-card-selected {
+            background-color: #4a5568 !important;
+            border: 1px solid var(--highlight-color);
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="month"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+        }
+    </style>
 </head>
 
-<body class="bg-gray-900">
-  <div id="root"></div>
+<body class="antialiased">
 
-  <script type="text/babel">
-    // --- SUPABASE CONFIGURATION ---
-    const supabaseUrl = 'https://mjexxadrukjwegvasqpo.supabase.co';
-    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qZXh4YWRydWtqd2VndmFzcXBvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgxMDE5ODUsImV4cCI6MjA2MzY3Nzk4NX0.0oDaJzFouYrTubt6Anzs8xwoGRuaNEIrZyFr8CDTOrE';
-
-    // --- INITIALIZE SUPABASE ---
-    const { createClient } = supabase;
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
-
-    // --- ADMIN ROLE ---
-    const ADMIN_ROLE = 'admin';
-
-
-    // --- SVG ICONS ---
-    const ShoppingCartIcon = (props) => (
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
-    );
-    const UserIcon = (props) => (
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-    );
-    const TrashIcon = (props) => (
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-    );
-    const TruckIcon = (props) => (
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
-    );
-    const CheckCircleIcon = (props) => (
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-    );
-    const ArrowLeftIcon = (props) => (
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-    );
-    const EditIcon = (props) => (
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-    );
-    const PlusCircleIcon = (props) => (
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-    );
-    const StarIcon = ({ className, ...props }) => (
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-    );
-    const SearchIcon = (props) => (
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-    );
-
-    // --- MODAL COMPONENT ---
-    const Modal = ({ isOpen, onClose, onConfirm, title, children }) => {
-      if (!isOpen) return null;
-      return (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50">
-          <div className="bg-gray-800 rounded-lg p-8 max-w-sm w-full">
-            <h2 className="text-xl font-bold mb-4">{title}</h2>
-            <p className="text-gray-300 mb-6">{children}</p>
-            <div className="flex justify-end space-x-4">
-              <button onClick={onClose} className="px-4 py-2 rounded bg-gray-600 hover:bg-gray-500">Cancel</button>
-              <button onClick={onConfirm} className="px-4 py-2 rounded bg-red-600 hover:bg-red-500">Confirm</button>
-            </div>
-          </div>
-        </div>
-      );
-    };
-
-
-    // --- COMPONENTS ---
-    const Header = ({ setPage, cartCount, setSelectedProduct, user, handleLogout, onSearch }) => {
-      const [searchTerm, setSearchTerm] = React.useState('');
-      const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
-      const dropdownRef = React.useRef(null);
-
-      React.useEffect(() => {
-        const handleClickOutside = (event) => {
-          if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-            setIsDropdownOpen(false);
-          }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-          document.removeEventListener("mousedown", handleClickOutside);
-        };
-      }, [dropdownRef]);
-
-      const goHome = () => {
-        setSelectedProduct(null);
-        setPage('home');
-        onSearch('');
-        setSearchTerm('');
-      }
-      const isAdmin = user && user.role === ADMIN_ROLE;
-
-      const handleSearch = (e) => {
-        e.preventDefault();
-        onSearch(searchTerm);
-        setPage('products');
-      }
-
-      const handleDropdownAction = (page) => {
-        setPage(page);
-        setIsDropdownOpen(false);
-      };
-
-      const handleLogoutClick = () => {
-        handleLogout();
-        setIsDropdownOpen(false);
-      };
-
-      return (
-        <header className="bg-gray-900/80 text-white shadow-lg sticky top-0 z-50 backdrop-blur-sm">
-          <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-            <div className="flex items-center space-x-3 cursor-pointer" onClick={goHome}>
-              <img src="https://i.imgur.com/8goI41e.png" alt="Baz Sport Logo" className="h-12 w-12" />
-            </div>
-            <div className="flex-1 max-w-xl mx-4">
-              <form onSubmit={handleSearch} className="relative">
-                <input
-                  type="text"
-                  placeholder="Search products..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-gray-700 text-white rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                />
-                <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
-                  <SearchIcon className="w-5 h-5" />
-                </button>
-              </form>
-            </div>
-            <nav className="hidden lg:flex items-center space-x-8">
-              <a href="#" className="hover:text-teal-400" onClick={goHome}>Home</a>
-              <a href="#" className="hover:text-teal-400" onClick={() => { setSelectedProduct(null); setPage('products'); onSearch(''); setSearchTerm(''); }}>Products</a>
-              <a href="#" className="hover:text-teal-400" onClick={() => setPage('offers')}>Offers</a>
-            </nav>
-            <div className="flex items-center space-x-4 ml-4">
-              {user ? (
-                <div className="relative" ref={dropdownRef}>
-                  <button onClick={() => setIsDropdownOpen(prev => !prev)} className="flex items-center space-x-2">
-                    <UserIcon />
-                  </button>
-                  {isDropdownOpen && (
-                    <div className="absolute right-0 mt-2 py-2 w-48 bg-gray-800 rounded-md shadow-xl z-50">
-                      <a href="#" onClick={() => handleDropdownAction('profile')} className="block px-4 py-2 text-sm text-gray-300 hover:bg-teal-500 hover:text-white">Profile</a>
-                      {isAdmin && <a href="#" onClick={() => handleDropdownAction('admin')} className="block px-4 py-2 text-sm text-teal-400 hover:bg-teal-500 hover:text-white">Admin Dashboard</a>}
-                      <a href="#" onClick={handleLogoutClick} className="block px-4 py-2 text-sm text-gray-300 hover:bg-teal-500 hover:text-white">Logout</a>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <button onClick={() => setPage('login')} className="flex items-center space-x-2 hover:text-teal-400">
-                  <UserIcon />
-                </button>
-              )}
-
-              <button className="relative" onClick={() => setPage('cart')}>
-                <ShoppingCartIcon className="h-6 w-6 hover:text-teal-400" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {cartCount}
-                  </span>
-                )}
-              </button>
-            </div>
-          </div>
-        </header>
-      );
-    };
-
-    const ProductCard = ({ product, setSelectedProduct, addToCart }) => {
-      const isOutOfStock = product.stock <= 0;
-      const handleProductClick = () => {
-        if (!isOutOfStock) setSelectedProduct(product.id);
-      }
-      const handleAddToCart = (e) => {
-        e.stopPropagation();
-        const defaultSize = product.sizes && product.sizes.length > 0 ? product.sizes[0] : 'One Size';
-        addToCart(product, 1, defaultSize);
-        const button = e.currentTarget;
-        button.textContent = 'Added!';
-        button.classList.add('bg-green-500');
-        setTimeout(() => {
-          button.textContent = 'Add to Cart';
-          button.classList.remove('bg-green-500');
-        }, 1500);
-      }
-
-      return (
-        <div className={`bg-gray-800 rounded-lg shadow-xl overflow-hidden group transform hover:-translate-y-2 transition-transform duration-300 flex flex-col ${isOutOfStock ? 'opacity-60' : 'cursor-pointer'}`} onClick={handleProductClick}>
-          <div className="relative h-64 w-full">
-            <img src={product.image} alt={product.name} className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/600x600/2d3748/e2e8f0?text=Image+Not+Found' }} />
-            {product.offer_price && (
-              <div className="absolute top-2 right-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">SALE</div>
-            )}
-            {isOutOfStock && (
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                <span className="text-white font-bold text-lg">Out of Stock</span>
-              </div>
-            )}
-          </div>
-          <div className="p-4 flex flex-col flex-grow">
-            <p className="text-sm text-gray-400 mb-1">{product.category}</p>
-            <h3 className="text-lg font-semibold truncate flex-grow">{product.name}</h3>
-            {product.offer_price ? (
-              <div className="mt-1">
-                <span className="text-red-500 font-bold text-xl">{(product.offer_price || 0).toFixed(2)} EGP</span>
-                <span className="text-gray-500 line-through ml-2">{(product.selling_price || 0).toFixed(2)} EGP</span>
-              </div>
-            ) : (
-              <p className="text-teal-400 font-bold mt-1">{(product.selling_price || 0).toFixed(2)} EGP</p>
-            )}
-            <button
-              className={`w-full mt-4 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300 ${isOutOfStock ? 'bg-gray-600 cursor-not-allowed' : 'bg-teal-500 hover:bg-teal-600'}`}
-              onClick={handleAddToCart}
-              disabled={isOutOfStock}
-            >
-              {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
-            </button>
-          </div>
-        </div>
-      );
-    };
-
-    const StarRating = ({ rating, onRating, readOnly = false }) => {
-      return (
-        <div className="flex space-x-1">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <StarIcon
-              key={star}
-              className={`w-6 h-6 ${readOnly ? '' : 'cursor-pointer'} ${rating >= star ? 'text-yellow-400' : 'text-gray-600'
-                } ${!readOnly && 'hover:text-yellow-300'}`}
-              onClick={() => !readOnly && onRating(star)}
-            />
-          ))}
-        </div>
-      );
-    };
-
-
-    const ProductDetailPage = ({ product, setSelectedProduct, addToCart, user, setPage }) => {
-      const [quantity, setQuantity] = React.useState(1);
-      const [selectedSize, setSelectedSize] = React.useState(product && product.sizes && product.sizes.length > 0 ? product.sizes[0] : 'One Size');
-      const [added, setAdded] = React.useState(false);
-      const [reviews, setReviews] = React.useState([]);
-      const [userRating, setUserRating] = React.useState(0);
-      const [reviewText, setReviewText] = React.useState('');
-      const [isSubmitting, setIsSubmitting] = React.useState(false);
-
-      React.useEffect(() => {
-        const fetchReviews = async () => {
-          if (!product || !product.id) return;
-          const { data, error } = await supabaseClient
-            .from('reviews')
-            .select('*, profiles(email)')
-            .eq('product_id', product.id)
-            .order('created_at', { ascending: false });
-
-          if (error) console.error("Error fetching reviews:", error);
-          else setReviews(data);
-        }
-        fetchReviews();
-      }, [product]);
-
-      if (!product) {
-        return <div className="text-center py-20 text-xl">Loading Product...</div>;
-      }
-
-      const isOutOfStock = product.stock <= 0;
-
-      const handleAddToCart = () => {
-        addToCart(product, quantity, selectedSize);
-        setAdded(true);
-        setTimeout(() => setAdded(false), 2000);
-      }
-
-      const handleReviewSubmit = async (e) => {
-        e.preventDefault();
-        if (!userRating || !reviewText) {
-          alert("Please provide a rating and a review text.");
-          return;
-        }
-        setIsSubmitting(true);
-        try {
-          const { data, error } = await supabaseClient
-            .from('reviews')
-            .insert([{
-              product_id: product.id,
-              user_id: user.id,
-              rating: userRating,
-              text: reviewText,
-            }])
-            .select('*, profiles(email)');
-
-          if (error) throw error;
-          setReviews(prev => [data[0], ...prev]);
-          setReviewText('');
-          setUserRating(0);
-        } catch (error) {
-          console.error("Error submitting review: ", error);
-          alert("Failed to submit review.");
-        }
-        setIsSubmitting(false);
-      }
-
-      const avgRating = reviews.length > 0 ? reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length : 0;
-
-      return (
-        <div className="container mx-auto px-6 py-12">
-          <button onClick={() => setSelectedProduct(null)} className="flex items-center space-x-2 mb-8 text-gray-400 hover:text-white">
-            <ArrowLeftIcon />
-            <span>Back to products</span>
-          </button>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
-            <div className="bg-gray-800 rounded-lg shadow-xl p-4">
-              <img src={product.image} alt={product.name} className="w-full h-auto object-contain rounded-lg max-h-[500px]" onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/600x600/2d3748/e2e8f0?text=Image+Not+Found' }} />
-            </div>
-            <div>
-              <h1 className="text-4xl font-bold mb-2">{product.name}</h1>
-              <div className="flex items-center gap-2 mb-4">
-                <StarRating rating={avgRating} readOnly={true} />
-                <span className="text-gray-400">({reviews.length} reviews)</span>
-              </div>
-              {product.offer_price ? (
-                <div className="mb-6">
-                  <span className="text-red-500 font-bold text-3xl">{(product.offer_price || 0).toFixed(2)} EGP</span>
-                  <span className="text-gray-500 line-through ml-3 text-xl">{(product.selling_price || 0).toFixed(2)} EGP</span>
-                </div>
-              ) : (
-                <p className="text-3xl text-teal-400 font-bold mb-6">{(product.selling_price || 0).toFixed(2)} EGP</p>
-              )}
-              <p className="text-gray-300 mb-6">{product.description || "No description available."}</p>
-
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-2">Size</h3>
-                <div className="flex space-x-2">
-                  {product.sizes && product.sizes.length > 0 ? product.sizes.map(size => (
-                    <button key={size} onClick={() => setSelectedSize(size)} className={`px-4 py-2 rounded-lg border-2 ${selectedSize === size ? 'bg-teal-500 border-teal-500' : 'border-gray-600 hover:bg-gray-700'}`}>
-                      {size}
-                    </button>
-                  )) : <span className="text-gray-400">One Size</span>}
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-2">Quantity</h3>
-                <div className="flex items-center space-x-4">
-                  <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="bg-gray-700 px-3 py-1 rounded-md">-</button>
-                  <span>{quantity}</span>
-                  <button onClick={() => setQuantity(q => q + 1)} className="bg-gray-700 px-3 py-1 rounded-md">+</button>
-                </div>
-              </div>
-
-              <button
-                onClick={handleAddToCart}
-                className={`w-full py-3 rounded-lg font-bold transition-colors ${added ? 'bg-green-500' : 'bg-teal-500 hover:bg-teal-600'} ${isOutOfStock ? 'bg-gray-600 cursor-not-allowed' : ''}`}
-                disabled={isOutOfStock}
-              >
-                {isOutOfStock ? 'Out of Stock' : (added ? 'Added to Cart!' : 'Add to Cart')}
-              </button>
-            </div>
-          </div>
-          {/* Reviews Section */}
-          <div className="mt-16">
-            <h2 className="text-3xl font-bold mb-8">Customer Reviews</h2>
-            {user ? (
-              <form onSubmit={handleReviewSubmit} className="bg-gray-800 p-6 rounded-lg mb-8">
-                <h3 className="text-xl font-semibold mb-4">Write a Review</h3>
-                <div className="mb-4">
-                  <StarRating rating={userRating} onRating={setUserRating} />
-                </div>
-                <textarea
-                  value={reviewText}
-                  onChange={(e) => setReviewText(e.target.value)}
-                  placeholder="Share your thoughts..."
-                  className="w-full bg-gray-700 p-3 rounded-md mb-4"
-                  rows="4"
-                ></textarea>
-                <button type="submit" disabled={isSubmitting} className="bg-teal-500 hover:bg-teal-600 px-6 py-2 rounded-lg font-bold disabled:bg-gray-500">
-                  {isSubmitting ? 'Submitting...' : 'Submit Review'}
-                </button>
-              </form>
-            ) : (
-              <p className="text-gray-400 mb-8">Please <button onClick={() => setPage('login')} className="font-semibold text-teal-400">log in</button> to write a review.</p>
-            )}
-            <div className="space-y-6">
-              {reviews.length > 0 ? reviews.map(review => (
-                <div key={review.id} className="bg-gray-800 p-4 rounded-lg">
-                  <div className="flex items-center mb-2">
-                    <StarRating rating={review.rating} readOnly={true} />
-                    <p className="ml-4 font-bold">{review.profiles?.email || 'Anonymous'}</p>
-                  </div>
-                  <p className="text-gray-300">{review.text}</p>
-                </div>
-              )) : <p className="text-gray-400">No reviews yet.</p>}
-            </div>
-          </div>
-        </div>
-      );
-    };
-
-    const HomePage = ({ products, setPage, addToCart, setSelectedProduct }) => {
-      const featuredProducts = products.slice(0, 4);
-      return (
+    <header class="bg-gray-800 shadow-md p-4 flex justify-between items-center sticky top-0 z-40">
         <div>
-          <div className="relative h-[60vh] flex items-center justify-center text-center bg-cover bg-center" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=2070&auto=format&fit=crop')" }}>
-            <div className="absolute inset-0 bg-black/60"></div>
-            <div className="relative z-10 p-6">
-              <h1 className="text-5xl md:text-7xl font-extrabold mb-4 tracking-tight">Unleash Your Potential</h1>
-              <p className="text-xl md:text-2xl text-gray-200 mb-8 max-w-2xl mx-auto">High-performance gear for the modern athlete. Built to win.</p>
-              <button onClick={() => setPage('products')} className="bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-8 rounded-lg text-lg transition-transform hover:scale-105">
-                Shop Now
-              </button>
+            <div id="home-btn" class="flex items-center space-x-3 cursor-pointer">
+                <img src="build/Logo/eagle.png" alt="Baz Sport Logo" class="h-8 w-8">
+                <span class="text-2xl font-bold text-white">Baz Sport</span>
             </div>
-          </div>
-          <div className="container mx-auto px-6 py-16">
-            <h2 className="text-3xl font-bold text-center mb-10">Featured Products</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {featuredProducts.map(product => (
-                <ProductCard key={product.id} product={product} addToCart={addToCart} setSelectedProduct={setSelectedProduct} />
-              ))}
-            </div>
-          </div>
+            <p class="text-xs text-gray-500 ml-12 -mt-1">© Omar Abdelall</p>
         </div>
-      )
-    }
+        <nav class="flex items-center space-x-2 md:space-x-4">
+            <a id="nav-home" class="nav-link active" data-page="home-page" data-lang-key="navHome">Home</a>
+            <a id="nav-inventory" class="nav-link admin-only" data-page="inventory-page"
+                data-lang-key="navInventory">Inventory</a>
+            <a id="nav-selling" class="nav-link flex items-center" data-page="selling-page" data-lang-key="navSelling">
+                Selling
+                <span id="cart-item-count"
+                    class="bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center ml-2">0</span>
+            </a>
+            <a id="nav-history" class="nav-link admin-only" data-page="history-page"
+                data-lang-key="navHistory">History</a>
+            <a id="nav-about" class="nav-link" data-page="about-page" data-lang-key="navAbout">About</a>
+            <button id="admin-mode-btn" class="btn-admin py-2 px-4 rounded-lg text-sm">Admin Mode</button>
+            <button id="lang-switcher" class="btn-secondary py-2 px-4 rounded-lg">العربية</button>
+        </nav>
+    </header>
 
-    const ProductsPage = ({ products, isLoading, addToCart, categories, searchTerm, setSelectedProduct }) => {
-      const [sortOrder, setSortOrder] = React.useState('latest');
-      const [selectedCategory, setSelectedCategory] = React.useState('All');
-
-      const filteredProducts = products
-        .filter(p => selectedCategory === 'All' || p.category === selectedCategory)
-        .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
-
-      const sortedProducts = [...filteredProducts].sort((a, b) => {
-        if (sortOrder === 'price-asc') {
-          return (a.offer_price || a.selling_price) - (b.offer_price || b.selling_price);
-        }
-        if (sortOrder === 'price-desc') {
-          return (b.offer_price || b.selling_price) - (a.offer_price || a.selling_price);
-        }
-        return new Date(b.created_at) - new Date(a.created_at);
-      });
-
-      return (
-        <div className="container mx-auto px-6 py-12">
-          <h1 className="text-4xl font-bold text-center mb-8">All Products</h1>
-          <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-            <div className="flex justify-center space-x-2 md:space-x-4 flex-wrap">
-              <button onClick={() => setSelectedCategory('All')} className={`px-4 py-2 rounded-lg font-semibold ${selectedCategory === 'All' ? 'bg-teal-500 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}>All</button>
-              {categories.map(category => (
-                <button key={category} onClick={() => setSelectedCategory(category)} className={`px-4 py-2 rounded-lg font-semibold ${selectedCategory === category ? 'bg-teal-500 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}>{category}</button>
-              ))}
-            </div>
-            <select onChange={(e) => setSortOrder(e.target.value)} value={sortOrder} className="bg-gray-700 border-gray-600 rounded-md p-2 focus:ring-teal-500 focus:border-teal-500">
-              <option value="latest">Latest</option>
-              <option value="price-asc">Price: Low to High</option>
-              <option value="price-desc">Price: High to Low</option>
-            </select>
-          </div>
-          {isLoading ? (
-            <div className="text-center text-xl">Loading products...</div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-              {sortedProducts.map(product => (
-                <ProductCard key={product.id} product={product} addToCart={addToCart} setSelectedProduct={setSelectedProduct} />
-              ))}
-            </div>
-          )}
+    <main id="app-container" class="p-4 md:p-8">
+        <!-- Home Page -->
+        <div id="home-page" class="page">
+            <div id="home-category-tabs" class="flex flex-wrap border-b border-gray-700 mb-4"></div>
+            <div class="mb-4"><input type="text" id="product-search" data-lang-key="searchPlaceholder"
+                    placeholder="Search by name, code, or barcode..."
+                    class="w-full p-2 rounded-lg bg-gray-700 text-white"></div>
+            <div id="product-gallery" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
         </div>
-      );
-    };
 
-    const OffersPage = ({ products, isLoading, setSelectedProduct, addToCart }) => {
-      const offerProducts = products.filter(p => p.offer_price);
-
-      return (
-        <div className="container mx-auto px-6 py-12">
-          <h1 className="text-4xl font-bold text-center mb-12">Special Offers</h1>
-          {isLoading ? (
-            <div className="text-center text-xl">Loading offers...</div>
-          ) : offerProducts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-              {offerProducts.map(product => (
-                <ProductCard key={product.id} product={product} setSelectedProduct={setSelectedProduct} addToCart={addToCart} />
-              ))}
+        <!-- Inventory Page -->
+        <div id="inventory-page" class="page hidden">
+            <div id="inventory-category-tabs" class="flex flex-wrap border-b border-gray-700 mb-4"></div>
+            <div class="flex justify-between items-center mb-4">
+                <button id="add-product-btn" class="btn-primary py-2 px-4 rounded-lg" data-lang-key="addNewProduct">Add
+                    New Product</button>
+                <input type="text" id="inventory-search" data-lang-key="inventorySearchPlaceholder"
+                    placeholder="Search inventory..." class="p-2 w-1/3 rounded-lg bg-gray-700 text-white">
             </div>
-          ) : (
-            <p className="text-center text-xl text-gray-400">No special offers available at the moment. Check back soon!</p>
-          )}
+            <div class="overflow-x-auto bg-gray-800 rounded-lg">
+                <table class="w-full text-left" id="inventory-table">
+                    <thead class="bg-gray-700">
+                        <tr>
+                            <th class="p-4" data-lang-key="colProductName">Name</th>
+                            <th class="p-4" data-lang-key="colProductCode">Code</th>
+                            <th class="p-4" data-lang-key="colCategory">Category</th>
+                            <th class="p-4" data-lang-key="colImage">Image</th>
+                            <th class="p-4" data-lang-key="colQuantity">Quantity</th>
+                            <th class="p-4" data-lang-key="colPurchasePrice">Purchase Price</th>
+                            <th class="p-4" data-lang-key="colSellingPrice">Selling Price</th>
+                            <th class="p-4" data-lang-key="colSizes">Sizes</th>
+                            <th class="p-4" data-lang-key="colActions">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
         </div>
-      );
-    };
 
-    const AuthForm = ({ isLogin, setPage, handleSubmit, error }) => {
-      const [email, setEmail] = React.useState('');
-      const [password, setPassword] = React.useState('');
-      const [isLoading, setIsLoading] = React.useState(false);
+        <!-- Selling Page -->
+        <div id="selling-page" class="page hidden grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="md:col-span-2 bg-gray-800 p-6 rounded-lg">
+                <h2 class="text-2xl font-bold mb-4" data-lang-key="addToCartTitle">Add Products to Cart</h2>
+                <div class="mb-4">
+                    <label for="barcode-scanner-input" class="block mb-2" data-lang-key="barcodeScanner">Scan
+                        Barcode</label>
+                    <input type="text" id="barcode-scanner-input" data-lang-key="barcodePlaceholder"
+                        placeholder="Click here and scan item..."
+                        class="w-full p-2 rounded-lg bg-gray-900 text-white focus:ring-2 focus:ring-highlight-color">
+                </div>
+                <div class="mb-4">
+                    <select id="product-selection" class="w-full p-2 rounded-lg bg-gray-700 text-white">
+                        <option value="" data-lang-key="selectProduct">Select a product</option>
+                    </select>
+                </div>
+                <div id="product-details-for-sale" class="hidden">
+                    <div class="mb-4"><label for="sale-quantity" class="block mb-2"
+                            data-lang-key="quantity">Quantity</label><input type="number" id="sale-quantity" value="1"
+                            min="1" class="w-full p-2 rounded-lg bg-gray-700 text-white"></div>
+                    <div class="mb-4"><label for="sale-size" class="block mb-2" data-lang-key="size">Size</label><select
+                            id="sale-size" class="w-full p-2 rounded-lg bg-gray-700 text-white"></select></div>
+                    <div class="mb-4"><label for="sale-price" class="block mb-2" data-lang-key="sellingPrice">Selling
+                            Price (EGP)</label><input type="number" id="sale-price"
+                            class="w-full p-2 rounded-lg bg-gray-700 text-white"></div>
+                    <button id="add-to-cart-btn" class="btn-primary w-full py-2 px-4 rounded-lg"
+                        data-lang-key="addToCart">Add to Cart</button>
+                </div>
+            </div>
+            <div class="bg-gray-800 p-6 rounded-lg">
+                <h2 class="text-2xl font-bold mb-4" data-lang-key="cart">Cart</h2>
+                <div id="cart-items" class="space-y-2 max-h-80 overflow-y-auto"></div>
+                <div class="border-t border-gray-600 mt-4 pt-4 space-y-4">
+                    <div class="flex justify-between items-center text-lg"><span
+                            data-lang-key="subtotal">Subtotal:</span><span id="cart-subtotal">0 EGP</span></div>
+                    <div class="flex items-center space-x-2"><label for="discount-percentage" class="w-1/2"
+                            data-lang-key="discountPercent">Discount (%):</label><input type="number"
+                            id="discount-percentage" min="0" max="100"
+                            class="w-1/2 p-2 rounded-lg bg-gray-700 text-white"></div>
+                    <div class="flex items-center space-x-2"><label for="discount-amount" class="w-1/2"
+                            data-lang-key="discountAmount">Discount (EGP):</label><input type="number"
+                            id="discount-amount" min="0" class="w-1/2 p-2 rounded-lg bg-gray-700 text-white"></div>
+                    <div class="flex justify-between font-bold text-xl text-highlight-color"><span
+                            data-lang-key="total">Total:</span><span id="cart-total">0 EGP</span></div>
+                    <div class="mt-4"><label for="paid-amount" class="block mb-2" data-lang-key="paidAmount">Paid Amount
+                            (EGP)</label><input type="number" id="paid-amount" data-lang-key="paidAmountPlaceholder"
+                            placeholder="Enter amount paid" class="w-full p-2 rounded-lg bg-gray-700 text-white"></div>
+                    <button id="complete-sale-btn" class="btn-primary w-full mt-4 py-2 px-4 rounded-lg"
+                        data-lang-key="completeSale">Complete Sale</button>
+                </div>
+            </div>
+        </div>
 
-      const submit = async (e) => {
-        e.preventDefault();
-        setIsLoading(true);
-        await handleSubmit(email, password);
-        setIsLoading(false);
-      }
+        <!-- History Page -->
+        <div id="history-page" class="page hidden">
+            <div class="bg-gray-800 p-6 rounded-lg mb-6">
+                <h2 class="text-2xl font-bold mb-4" data-lang-key="reports">Reports</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                    <div>
+                        <label for="time-filter-type" class="block text-sm mb-1" data-lang-key="timeFilter">Time
+                            Filter</label>
+                        <select id="time-filter-type" class="w-full p-2 rounded-lg bg-gray-700 text-white">
+                            <option value="all" data-lang-key="allTime">All Time</option>
+                            <option value="month" data-lang-key="byMonth">By Month</option>
+                            <option value="day" data-lang-key="byDay">By Day</option>
+                        </select>
+                    </div>
+                    <div id="month-filter-container" class="hidden"><label for="report-month-picker"
+                            class="block text-sm mb-1" data-lang-key="selectMonth">Select Month</label><input
+                            type="month" id="report-month-picker" class="w-full p-2 rounded-lg bg-gray-700 text-white">
+                    </div>
+                    <div id="day-filter-container" class="hidden"><label for="report-day-picker"
+                            class="block text-sm mb-1" data-lang-key="selectDay">Select Day</label><input type="date"
+                            id="report-day-picker" class="w-full p-2 rounded-lg bg-gray-700 text-white"></div>
+                    <div>
+                        <label for="user-filter" class="block text-sm mb-1" data-lang-key="cashier">Cashier</label>
+                        <select id="user-filter" class="w-full p-2 rounded-lg bg-gray-700 text-white">
+                            <option value="all" data-lang-key="allUsers">All Users</option>
+                        </select>
+                    </div>
+                    <div class="self-end"><button id="export-pdf-btn" class="btn-secondary w-full py-2 px-4 rounded-lg"
+                            data-lang-key="exportPdf">Export to PDF</button></div>
+                </div>
+                <div id="report-summary"
+                    class="mt-6 border-t border-gray-700 pt-4 grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <div class="bg-gray-700 p-4 rounded-lg">
+                        <h3 class="font-bold" data-lang-key="totalRevenue">Total Revenue</h3>
+                        <p id="total-revenue">0 EGP</p>
+                    </div>
+                    <div class="bg-gray-700 p-4 rounded-lg">
+                        <h3 class="font-bold" data-lang-key="totalProfit">Total Profit</h3>
+                        <p id="total-profit">0 EGP</p>
+                    </div>
+                    <div class="bg-gray-700 p-4 rounded-lg">
+                        <h3 class="font-bold" data-lang-key="totalItemsSold">Total Items Sold</h3>
+                        <p id="total-items-sold">0</p>
+                    </div>
+                    <div class="bg-gray-700 p-4 rounded-lg">
+                        <h3 class="font-bold" data-lang-key="totalReturns">Total Returns</h3>
+                        <p id="total-items-returned">0</p>
+                    </div>
+                    <div class="bg-gray-700 p-4 rounded-lg">
+                        <h3 class="font-bold" data-lang-key="totalReturnsValue">Total Returns Value</h3>
+                        <p id="total-returns-value">0 EGP</p>
+                    </div>
+                </div>
+            </div>
 
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-900">
-          <div className="bg-gray-800 p-8 md:p-12 rounded-lg shadow-2xl w-full max-w-md">
-            <h1 className="text-3xl font-bold text-center mb-6">{isLogin ? 'Welcome Back' : 'Create an Account'}</h1>
-            <form onSubmit={submit} className="space-y-6">
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
-                <input type="email" name="email" id="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-gray-700 border-gray-600 rounded-md p-3 focus:ring-teal-500 focus:border-teal-500" />
-              </div>
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">Password</label>
-                <input type="password" name="password" id="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-gray-700 border-gray-600 rounded-md p-3 focus:ring-teal-500 focus:border-teal-500" />
-              </div>
-              {error && <p className="text-red-500 text-sm">{error}</p>}
-              <button type="submit" disabled={isLoading} className="w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 rounded-lg text-lg disabled:bg-gray-500">
-                {isLoading ? 'Loading...' : (isLogin ? 'Login' : 'Sign Up')}
-              </button>
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold" data-lang-key="salesHistory">Sales History</h2>
+                <input type="text" id="history-search" data-lang-key="searchReceiptsPlaceholder"
+                    placeholder="Search by Receipt ID or Cashier..." class="p-2 rounded-lg bg-gray-700 text-white">
+            </div>
+            <div id="selection-controls" class="flex items-center space-x-4 mb-4 hidden">
+                <input type="checkbox" id="select-all-checkbox" class="h-5 w-5 rounded"><label for="select-all-checkbox"
+                    data-lang-key="selectAll">Select All</label>
+                <button id="delete-selected-btn" class="btn-danger py-2 px-4 rounded-lg hidden"
+                    data-lang-key="deleteSelected">Delete Selected</button>
+            </div>
+            <div id="sales-history-list" class="space-y-4"></div>
+            <div class="mt-8 pt-6 border-t-2 border-gray-700 admin-only-block">
+                <h2 class="text-2xl font-bold mb-4" data-lang-key="userManagement">User Management</h2>
+                <button id="manage-users-btn" class="btn-primary py-2 px-4 rounded-lg"
+                    data-lang-key="openUserManagement">
+                    Open User Management
+                </button>
+            </div>
+        </div>
+
+        <!-- About Page -->
+        <div id="about-page" class="page hidden">
+            <div class="bg-gray-800 p-8 rounded-lg max-w-2xl mx-auto">
+                <h2 class="text-3xl font-bold mb-4 text-center text-highlight-color">About Baz Sport System</h2>
+                <p class="mb-6 text-center text-gray-300">
+                    This is a custom inventory and point-of-sale (POS) system designed and developed for Baz Sport.
+                </p>
+                <div class="border-t border-gray-700 pt-6">
+                    <h3 class="text-2xl font-bold mb-4 text-center">Developer Information</h3>
+                    <div class="text-center space-y-2">
+                        <p class="text-lg"><strong>System by:</strong> Omar Abdelall</p>
+                        <p class="text-lg"><strong>Email:</strong> moroplus15@gmail.com</p>
+                        <p class="text-lg"><strong>Phone No:</strong> 01009715199</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modals -->
+    <div id="product-modal" class="modal fixed inset-0 z-50 flex items-center justify-center hidden overflow-y-auto">
+        <div class="modal-content w-full max-w-lg p-6 rounded-lg shadow-lg my-8">
+            <h2 id="modal-title" class="text-2xl font-bold mb-4">Add New Product</h2>
+            <form id="product-form">
+                <input type="hidden" id="product-id">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label for="product-name" class="block mb-1" data-lang-key="labelProductName">Product
+                            Name</label><input type="text" id="product-name" class="w-full p-2 rounded-lg bg-gray-700"
+                            required></div>
+                    <div>
+                        <label for="product-category" class="block mb-1" data-lang-key="labelCategory">Category</label>
+                        <input list="category-list" id="product-category" placeholder="Choose or type new..."
+                            class="w-full p-2 rounded-lg bg-gray-700">
+                        <datalist id="category-list"></datalist>
+                    </div>
+                    <div><label for="product-code" class="block mb-1" data-lang-key="labelProductCode">Product Code
+                            (SKU)</label><input type="text" id="product-code" class="w-full p-2 rounded-lg bg-gray-700">
+                    </div>
+                    <div><label for="main-barcode" class="block mb-1" data-lang-key="labelBarcode">Main Barcode</label>
+                        <input type="text" id="main-barcode" class="w-full p-2 rounded-lg bg-gray-700">
+                    </div>
+                    <div><label for="purchase-price" class="block mb-1" data-lang-key="labelPurchasePrice">Purchase
+                            Price</label><input type="number" id="purchase-price"
+                            class="w-full p-2 rounded-lg bg-gray-700" required min="0" step="0.01"></div>
+                    <div><label for="selling-price" class="block mb-1" data-lang-key="labelSellingPrice">Selling
+                            Price</label><input type="number" id="selling-price"
+                            class="w-full p-2 rounded-lg bg-gray-700" required min="0" step="0.01"></div>
+
+                    <div class="md:col-span-2">
+                        <label for="product-sizes" class="block mb-1" data-lang-key="labelSizes">Sizes
+                            (comma-separated)</label>
+                        <input type="text" id="product-sizes" placeholder="e.g. S, M, L, XL"
+                            class="w-full p-2 rounded-lg bg-gray-700">
+                    </div>
+
+                    <div id="size-quantity-container" class="md:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-4 mt-2">
+                    </div>
+                </div>
+                <div class="mt-4"><label for="product-image" class="block mb-2" data-lang-key="labelImage">Product
+                        Image</label><input type="file" id="product-image" class="w-full text-white"
+                        accept="image/*"><img id="image-preview" src="" class="mt-2 h-24 hidden" /></div>
+                <div class="flex justify-end space-x-4 mt-6"><button type="button" id="cancel-btn"
+                        class="btn-secondary py-2 px-4 rounded-lg" data-lang-key="btnCancel">Cancel</button><button
+                        type="submit" class="btn-primary py-2 px-4 rounded-lg" data-lang-key="btnSave">Save
+                        Product</button></div>
             </form>
-            <p className="text-center text-gray-400 mt-6">
-              {isLogin ? "Don't have an account? " : "Already have an account? "}
-              <button onClick={() => setPage(isLogin ? 'signup' : 'login')} className="font-semibold text-teal-400 hover:text-teal-300">
-                {isLogin ? 'Sign Up' : 'Login'}
-              </button>
-            </p>
-          </div>
         </div>
-      );
-    };
+    </div>
 
-    const CartPage = ({ cart, products, updateCartQuantity, removeFromCart, setPage, user }) => {
-      const getProductDetails = (productId) => products.find(p => p.id === productId);
-
-      const subtotal = cart.reduce((sum, item) => {
-        const product = getProductDetails(item.productId);
-        const price = product?.offer_price || product?.selling_price || 0;
-        return sum + (price * item.quantity);
-      }, 0);
-
-      const handleCheckout = () => {
-        if (user) {
-          setPage('checkout');
-        } else {
-          setPage('login');
-        }
-      };
-
-
-      if (cart.length === 0) {
-        return (
-          <div className="container mx-auto px-6 py-20 text-center">
-            <ShoppingCartIcon className="h-24 w-24 mx-auto text-gray-600 mb-4" />
-            <h1 className="text-3xl font-bold mb-4">Your Cart is Empty</h1>
-            <p className="text-gray-400 mb-8">Looks like you haven't added anything to your cart yet.</p>
-            <button onClick={() => setPage('products')} className="bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-8 rounded-lg text-lg">
-              Start Shopping
-            </button>
-          </div>
-        )
-      }
-
-      return (
-        <div className="container mx-auto px-6 py-12">
-          <h1 className="text-4xl font-bold text-center mb-12">Your Shopping Cart</h1>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-            <div className="lg:col-span-2 bg-gray-800 p-6 rounded-lg shadow-xl">
-              {cart.map(item => {
-                const product = getProductDetails(item.productId);
-                if (!product) return <div key={item.cartItemId}>Item not found</div>;
-                const price = product.offer_price || product.selling_price;
-                return (
-                  <div key={item.cartItemId} className="flex items-center space-x-6 py-4 border-b border-gray-700 last:border-b-0">
-                    <img src={product.image} alt={product.name} className="w-24 h-24 object-cover rounded-md" />
-                    <div className="flex-grow">
-                      <h3 className="text-lg font-semibold">{product.name}</h3>
-                      <p className="text-sm text-gray-400">Size: {item.size}</p>
-                      <p className="text-teal-400 font-bold mt-1">{(price * item.quantity).toFixed(2)} EGP</p>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <button onClick={() => updateCartQuantity(item.cartItemId, item.quantity - 1)} className="bg-gray-700 px-3 py-1 rounded-md">-</button>
-                      <span>{item.quantity}</span>
-                      <button onClick={() => updateCartQuantity(item.cartItemId, item.quantity + 1)} className="bg-gray-700 px-3 py-1 rounded-md">+</button>
-                    </div>
-                    <button onClick={() => removeFromCart(item.cartItemId)} className="text-gray-500 hover:text-red-500">
-                      <TrashIcon />
-                    </button>
-                  </div>
-                );
-              })}
+    <div id="barcode-modal" class="modal fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="modal-content w-full max-w-md p-6 rounded-lg shadow-lg">
+            <h2 id="barcode-modal-title" class="text-2xl font-bold mb-4">Product Barcodes</h2>
+            <div id="barcode-list" class="space-y-4 max-h-96 overflow-y-auto">
             </div>
-            <div className="bg-gray-800 p-6 rounded-lg shadow-xl self-start">
-              <h2 className="text-2xl font-bold mb-6 border-b border-gray-700 pb-4">Order Summary</h2>
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-300">Subtotal</span>
-                <span>{subtotal.toFixed(2)} EGP</span>
-              </div>
-              <div className="flex justify-between mb-4">
-                <span className="text-gray-300">Shipping</span>
-                <span>Free</span>
-              </div>
-              <div className="flex justify-between text-xl font-bold border-t border-gray-700 pt-4">
-                <span>Total</span>
-                <span>{subtotal.toFixed(2)} EGP</span>
-              </div>
-              <button onClick={handleCheckout} className="w-full mt-6 bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 rounded-lg text-lg">
-                Proceed to Checkout
-              </button>
+            <div class="flex justify-end mt-6">
+                <button type="button" id="close-barcode-modal-btn"
+                    class="btn-secondary py-2 px-4 rounded-lg">Close</button>
             </div>
-          </div>
         </div>
-      );
-    };
+    </div>
 
-    const CheckoutPage = ({ cart, products, placeOrder, user }) => {
-      const [customerDetails, setCustomerDetails] = React.useState({ name: '', email: user?.email || '', address: '', city: '', phone: '' });
-      const [isPlacingOrder, setIsPlacingOrder] = React.useState(false);
 
-      const getProductDetails = (productId) => products.find(p => p.id === productId);
-      const total = cart.reduce((sum, item) => {
-        const product = getProductDetails(item.productId);
-        const price = product?.offer_price || product?.selling_price || 0;
-        return sum + (price * item.quantity);
-      }, 0);
+    <div id="return-modal" class="modal fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="modal-content w-full max-w-md p-6 rounded-lg shadow-lg">
+            <h2 class="text-2xl font-bold mb-4">Process Return</h2>
+            <div id="return-items-container"></div>
+            <div class="flex justify-end space-x-4 mt-4"><button type="button" id="cancel-return-btn"
+                    class="btn-secondary py-2 px-4 rounded-lg">Cancel</button><button type="button"
+                    id="confirm-return-btn" class="btn-primary py-2 px-4 rounded-lg">Confirm Return</button></div>
+        </div>
+    </div>
 
-      const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setCustomerDetails(prev => ({ ...prev, [name]: value }));
-      };
-
-      const handleSubmit = async (e) => {
-        e.preventDefault();
-        setIsPlacingOrder(true);
-        if (!customerDetails.name || !customerDetails.address || !customerDetails.city || !customerDetails.phone) {
-          alert("Please fill in all fields.");
-          setIsPlacingOrder(false);
-          return;
-        }
-        await placeOrder(customerDetails, total);
-        setIsPlacingOrder(false);
-      }
-
-      return (
-        <div className="container mx-auto px-6 py-12">
-          <h1 className="text-4xl font-bold text-center mb-12">Checkout</h1>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-            <div className="lg:col-span-2 bg-gray-800 p-8 rounded-lg shadow-xl">
-              <h2 className="text-2xl font-bold mb-6">1. Shipping Information</h2>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">Full Name</label>
-                  <input type="text" name="name" id="name" required value={customerDetails.name} onChange={handleInputChange} className="w-full bg-gray-700 border-gray-600 rounded-md p-3 focus:ring-teal-500 focus:border-teal-500" />
+    <div id="admin-password-modal" class="modal fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="modal-content w-full max-w-sm p-6 rounded-lg shadow-lg">
+            <h2 class="text-2xl font-bold mb-4">Admin Login</h2>
+            <form id="admin-password-form">
+                <label for="admin-password-input" class="block mb-2">Password</label>
+                <input type="password" id="admin-password-input"
+                    class="w-full p-2 rounded-lg bg-gray-700 text-white mb-2" required>
+                <p id="admin-password-error" class="text-red-400 text-sm mb-4 hidden">Incorrect password. Please try
+                    again.</p>
+                <div class="flex justify-end space-x-4 mt-4">
+                    <button type="button" id="cancel-admin-password-btn"
+                        class="btn-secondary py-2 px-4 rounded-lg">Cancel</button>
+                    <button type="submit" class="btn-primary py-2 px-4 rounded-lg">Login</button>
                 </div>
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
-                  <input type="email" name="email" id="email" required value={customerDetails.email} onChange={handleInputChange} className="w-full bg-gray-700 border-gray-600 rounded-md p-3 focus:ring-teal-500 focus:border-teal-500" />
-                </div>
-                <div>
-                  <label htmlFor="address" className="block text-sm font-medium text-gray-300 mb-2">Address</label>
-                  <input type="text" name="address" id="address" required value={customerDetails.address} onChange={handleInputChange} className="w-full bg-gray-700 border-gray-600 rounded-md p-3 focus:ring-teal-500 focus:border-teal-500" />
-                </div>
-                <div>
-                  <label htmlFor="city" className="block text-sm font-medium text-gray-300 mb-2">City</label>
-                  <input type="text" name="city" id="city" required value={customerDetails.city} onChange={handleInputChange} className="w-full bg-gray-700 border-gray-600 rounded-md p-3 focus:ring-teal-500 focus:border-teal-500" />
-                </div>
-                <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-gray-300 mb-2">Phone Number</label>
-                  <input type="tel" name="phone" id="phone" required value={customerDetails.phone} onChange={handleInputChange} className="w-full bg-gray-700 border-gray-600 rounded-md p-3 focus:ring-teal-500 focus:border-teal-500" />
-                </div>
-                <div className="pt-8">
-                  <h2 className="text-2xl font-bold mb-6">2. Payment Method</h2>
-                  <div className="bg-gray-700 p-4 rounded-lg">
-                    <p className="font-semibold">Cash on Delivery</p>
-                    <p className="text-sm text-gray-400">Pay with cash upon receiving your order.</p>
-                  </div>
-                </div>
-
-                <button type="submit" disabled={isPlacingOrder} className="w-full mt-6 bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 rounded-lg text-lg disabled:bg-gray-500 disabled:cursor-not-allowed">
-                  {isPlacingOrder ? 'Placing Order...' : `Place Order (${total.toFixed(2)} EGP)`}
-                </button>
-              </form>
-            </div>
-            <div className="bg-gray-800 p-8 rounded-lg shadow-xl self-start">
-              <h2 className="text-2xl font-bold mb-6">Your Order</h2>
-              <div className="space-y-4">
-                {cart.map(item => {
-                  const product = getProductDetails(item.productId);
-                  if (!product) return null;
-                  const price = product.offer_price || product.selling_price;
-                  return (
-                    <div key={item.cartItemId} className="flex justify-between items-start">
-                      <div>
-                        <p>{product.name} <span className="text-gray-400">x {item.quantity}</span></p>
-                        <p className="text-sm text-gray-400">Size: {item.size}</p>
-                      </div>
-                      <p>{(price * item.quantity).toFixed(2)}</p>
-                    </div>
-                  )
-                })}
-              </div>
-              <div className="flex justify-between text-xl font-bold border-t border-gray-700 mt-6 pt-4">
-                <span>Total</span>
-                <span>{total.toFixed(2)} EGP</span>
-              </div>
-            </div>
-          </div>
+            </form>
         </div>
-      );
-    };
+    </div>
 
-    const OrderConfirmationPage = ({ orderId, setPage }) => {
-      return (
-        <div className="container mx-auto px-6 py-20 text-center">
-          <CheckCircleIcon className="h-24 w-24 mx-auto text-green-500 mb-4" />
-          <h1 className="text-4xl font-bold mb-4">Thank You for Your Order!</h1>
-          <p className="text-gray-300 text-lg mb-2">Your order has been placed successfully.</p>
-          <p className="text-gray-400 mb-8">Your Order ID is: <span className="font-semibold text-teal-400">{orderId}</span></p>
-          <button onClick={() => setPage('home')} className="bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-8 rounded-lg text-lg">
-            Continue Shopping
-          </button>
-        </div>
-      );
-    };
-
-    const ProfilePage = ({ user, handleLogout, setPage }) => {
-      const [activeTab, setActiveTab] = React.useState('profile');
-
-      if (!user) {
-        setPage('login');
-        return null;
-      }
-
-      return (
-        <div className="container mx-auto px-6 py-12">
-          <h1 className="text-4xl font-bold text-center mb-12">My Account</h1>
-          <div className="max-w-4xl mx-auto flex flex-col md:flex-row gap-8">
-            <div className="w-full md:w-1/4">
-              <div className="bg-gray-800 p-4 rounded-lg">
-                <button onClick={() => setActiveTab('profile')} className={`w-full text-left p-3 rounded-md ${activeTab === 'profile' ? 'bg-teal-500 text-white' : 'hover:bg-gray-700'}`}>Profile Details</button>
-                <button onClick={() => setActiveTab('orders')} className={`w-full text-left p-3 rounded-md mt-2 ${activeTab === 'orders' ? 'bg-teal-500 text-white' : 'hover:bg-gray-700'}`}>My Orders</button>
-                <button onClick={handleLogout} className="w-full text-left p-3 rounded-md mt-2 hover:bg-red-700">Logout</button>
-              </div>
-            </div>
-            <div className="w-full md:w-3/4">
-              <div className="bg-gray-800 p-8 rounded-lg">
-                {activeTab === 'profile' && (
-                  <div>
-                    <h2 className="text-2xl font-bold mb-6">Profile Details</h2>
-                    <div className="space-y-4">
-                      <div>
-                        <p className="text-gray-400">Email:</p>
-                        <p className="text-lg">{user.email}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-400">User ID:</p>
-                        <p className="text-sm text-gray-300">{user.id}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {activeTab === 'orders' && <MyOrdersPage user={user} />}
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    };
-
-    const MyOrdersPage = ({ user }) => {
-      const [orders, setOrders] = React.useState([]);
-      const [isLoading, setIsLoading] = React.useState(true);
-
-      React.useEffect(() => {
-        const fetchOrders = async () => {
-          if (!user) return;
-          try {
-            const { data, error } = await supabaseClient
-              .from('orders')
-              .select('*')
-              .eq('user_id', user.id)
-              .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            setOrders(data);
-          } catch (error) {
-            console.error("Error fetching orders:", error);
-          } finally {
-            setIsLoading(false);
-          }
-        };
-        fetchOrders();
-      }, [user]);
-
-      if (isLoading) return <div className="text-center py-10 text-xl">Loading your orders...</div>;
-
-      if (orders.length === 0) {
-        return (
-          <div className="text-center">
-            <TruckIcon className="h-24 w-24 mx-auto text-gray-600 mb-4" />
-            <p className="text-xl">You have not placed any orders yet.</p>
-          </div>
-        )
-      }
-
-      return (
-        <div>
-          <h2 className="text-2xl font-bold mb-6">My Orders</h2>
-          <div className="space-y-6">
-            {orders.map(order => (
-              <div key={order.id} className="bg-gray-900/50 p-4 rounded-lg">
-                <div className="flex flex-col sm:flex-row justify-between sm:items-start mb-4 gap-4">
-                  <div>
-                    <h2 className="font-bold text-md">Order ID: <span className="font-normal text-gray-300">{order.id}</span></h2>
-                    <p className="text-sm text-gray-400">Date: {new Date(order.created_at).toLocaleDateString()}</p>
-                  </div>
-                  <span className="text-lg font-bold text-teal-400">{order.total.toFixed(2)} EGP</span>
-                </div>
-                <div className="space-y-2 border-t border-gray-700 pt-4">
-                  {order.items.map(item => (
-                    <div key={item.cartItemId} className="flex justify-between items-center py-2">
-                      <div>
-                        <p>{item.name} ({item.size})</p>
-                        <p className="text-sm text-gray-400">Qty: {item.quantity}</p>
-                      </div>
-                      <p>{(item.price * item.quantity).toFixed(2)} EGP</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="text-right mt-4 text-gray-300">Status: <span className={`font-semibold ${order.status === 'Delivered' ? 'text-green-400' : 'text-yellow-400'}`}>{order.status}</span></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    };
-
-
-    // --- ADMIN COMPONENTS ---
-    const AdminDashboardPage = ({ setPage }) => {
-      const [stats, setStats] = React.useState({ revenue: 0, orders: 0, products: 0 });
-      const [recentOrders, setRecentOrders] = React.useState([]);
-      const [isLoading, setIsLoading] = React.useState(true);
-
-      React.useEffect(() => {
-        const fetchDashboardData = async () => {
-          try {
-            const { data: ordersData, error: ordersError } = await supabaseClient.from('orders').select('id, total, status, created_at, customer_details');
-            if (ordersError) throw ordersError;
-
-            let totalRevenue = 0;
-            ordersData.forEach(order => {
-              totalRevenue += order.total;
-            });
-
-            const pendingOrders = ordersData
-              .filter(o => o.status === 'Pending')
-              .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-              .slice(0, 5);
-            setRecentOrders(pendingOrders);
-
-            const { count: productCount, error: productsError } = await supabaseClient.from('products').select('*', { count: 'exact', head: true });
-            if (productsError) throw productsError;
-
-            setStats({
-              revenue: totalRevenue,
-              orders: ordersData.length,
-              products: productCount
-            });
-
-          } catch (error) {
-            console.error("Error fetching dashboard data:", error)
-          } finally {
-            setIsLoading(false);
-          }
-        };
-        fetchDashboardData();
-      }, []);
-
-      if (isLoading) {
-        return <div className="text-center py-20 text-xl">Loading Dashboard...</div>
-      }
-
-      return (
-        <div className="container mx-auto px-6 py-12">
-          <h1 className="text-4xl font-bold text-center mb-12">Admin Dashboard</h1>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-            <div className="bg-gray-800 p-6 rounded-lg shadow-xl text-center">
-              <h3 className="text-gray-400 text-lg">Total Revenue</h3>
-              <p className="text-4xl font-bold text-teal-400">{stats.revenue.toFixed(2)} EGP</p>
-            </div>
-            <div className="bg-gray-800 p-6 rounded-lg shadow-xl text-center">
-              <h3 className="text-gray-400 text-lg">Total Orders</h3>
-              <p className="text-4xl font-bold">{stats.orders}</p>
-            </div>
-            <div className="bg-gray-800 p-6 rounded-lg shadow-xl text-center">
-              <h3 className="text-gray-400 text-lg">Total Products</h3>
-              <p className="text-4xl font-bold">{stats.products}</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12 max-w-4xl mx-auto">
-            <div onClick={() => setPage('admin-products')} className="bg-gray-800 p-8 rounded-lg shadow-xl text-center cursor-pointer hover:bg-gray-700 transition-colors">
-              <h2 className="text-2xl font-bold mb-2">Manage Products</h2>
-              <p className="text-gray-400">Add, edit, or delete products.</p>
-            </div>
-            <div onClick={() => setPage('admin-orders')} className="bg-gray-800 p-8 rounded-lg shadow-xl text-center cursor-pointer hover:bg-gray-700 transition-colors">
-              <h2 className="text-2xl font-bold mb-2">Manage Orders</h2>
-              <p className="text-gray-400">View and update all customer orders.</p>
-            </div>
-          </div>
-
-          <div>
-            <h2 className="text-2xl font-bold mb-4">Recent Pending Orders</h2>
-            <div className="bg-gray-800 rounded-lg shadow-xl overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-gray-700">
-                  <tr>
-                    <th className="p-4">Customer</th>
-                    <th className="p-4">Total</th>
-                    <th className="p-4">Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentOrders.map(order => (
-                    <tr key={order.id} className="border-b border-gray-700">
-                      <td className="p-4">{order.customer_details.name}</td>
-                      <td className="p-4">{order.total.toFixed(2)} EGP</td>
-                      <td className="p-4 text-sm">{new Date(order.created_at).toLocaleDateString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )
-    }
-
-    const ProductForm = ({ product, onSave, onCancel }) => {
-      const [formData, setFormData] = React.useState(
-        product || { name: '', description: '', category: '', selling_price: '', offer_price: '', image: '', sizes: [], stock: 0 }
-      );
-      const [imageFile, setImageFile] = React.useState(null);
-      const [isUploading, setIsUploading] = React.useState(false);
-
-      const handleChange = (e) => {
-        const { name, value, type } = e.target;
-        setFormData(prev => ({ ...prev, [name]: type === 'number' ? parseFloat(value) : value }));
-      };
-
-      const handleFileChange = (e) => {
-        if (e.target.files[0]) {
-          setImageFile(e.target.files[0]);
-        }
-      }
-
-      const handleSubmit = async (e) => {
-        e.preventDefault();
-        setIsUploading(true);
-        let imageUrl = formData.image;
-
-        if (imageFile) {
-          const filePath = `public/${Date.now()}_${imageFile.name}`;
-          try {
-            const { error: uploadError } = await supabaseClient.storage
-              .from('product-images')
-              .upload(filePath, imageFile);
-            if (uploadError) throw uploadError;
-
-            const { data } = supabaseClient.storage
-              .from('product-images')
-              .getPublicUrl(filePath);
-            imageUrl = data.publicUrl;
-
-          } catch (error) {
-            console.error("Error uploading image: ", error);
-            alert("Failed to upload image. Please try again.");
-            setIsUploading(false);
-            return;
-          }
-        }
-
-        const dataToSave = {
-          ...formData,
-          image: imageUrl,
-          selling_price: parseFloat(formData.selling_price) || 0,
-          offer_price: formData.offer_price ? parseFloat(formData.offer_price) : null,
-          sizes: Array.isArray(formData.sizes) ? formData.sizes : formData.sizes.split(',').map(s => s.trim()).filter(Boolean),
-          stock: Number(formData.stock) || 0,
-        };
-        if (dataToSave.id) delete dataToSave.id;
-        if (dataToSave.created_at) delete dataToSave.created_at;
-
-        await onSave(dataToSave);
-        setIsUploading(false);
-      };
-
-      return (
-        <form onSubmit={handleSubmit} className="bg-gray-800 p-8 rounded-lg space-y-6 max-w-2xl mx-auto">
-          <input name="name" value={formData.name} onChange={handleChange} placeholder="Product Name" required className="w-full bg-gray-700 p-3 rounded-md" />
-          <textarea name="description" value={formData.description} onChange={handleChange} placeholder="Product Description" className="w-full bg-gray-700 p-3 rounded-md" rows="4" />
-          <input name="category" value={formData.category} onChange={handleChange} placeholder="Category" required className="w-full bg-gray-700 p-3 rounded-md" />
-          <input name="selling_price" value={formData.selling_price} onChange={handleChange} type="number" step="0.01" placeholder="Selling Price (EGP)" required className="w-full bg-gray-700 p-3 rounded-md" />
-          <input name="offer_price" value={formData.offer_price || ''} onChange={handleChange} type="number" step="0.01" placeholder="Offer Price (EGP, optional)" className="w-full bg-gray-700 p-3 rounded-md" />
-          <input name="stock" value={formData.stock} onChange={handleChange} type="number" placeholder="Stock Quantity" required className="w-full bg-gray-700 p-3 rounded-md" />
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Product Image</label>
-            <input type="file" onChange={handleFileChange} className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100" />
-            {formData.image && !imageFile && <img src={formData.image} alt="Current" className="w-24 h-24 object-cover mt-4 rounded-md" />}
-          </div>
-          <input name="sizes" value={Array.isArray(formData.sizes) ? formData.sizes.join(', ') : formData.sizes} onChange={handleChange} placeholder="Sizes (comma-separated, e.g., S, M, L)" className="w-full bg-gray-700 p-3 rounded-md" />
-          <div className="flex space-x-4">
-            <button type="submit" disabled={isUploading} className="w-full bg-teal-500 hover:bg-teal-600 py-2 rounded-md font-bold disabled:bg-gray-500">
-              {isUploading ? 'Saving...' : 'Save Product'}
-            </button>
-            <button type="button" onClick={onCancel} className="w-full bg-gray-600 hover:bg-gray-500 py-2 rounded-md font-bold">Cancel</button>
-          </div>
-        </form>
-      );
-    }
-
-    const AdminProductsPage = ({ products, setPage, onProductAdd, onProductUpdate, onProductDelete }) => {
-      const [isEditing, setIsEditing] = React.useState(null);
-      const [modalState, setModalState] = React.useState({ isOpen: false, productId: null });
-
-      const openDeleteModal = (productId) => {
-        setModalState({ isOpen: true, productId: productId });
-      }
-
-      const closeDeleteModal = () => {
-        setModalState({ isOpen: false, productId: null });
-      }
-
-      const confirmDelete = () => {
-        if (modalState.productId) {
-          onProductDelete(modalState.productId);
-        }
-        closeDeleteModal();
-      }
-
-      const handleSave = (productData) => {
-        if (isEditing && isEditing.id) {
-          onProductUpdate(isEditing.id, productData);
-        } else {
-          onProductAdd(productData);
-        }
-        setIsEditing(null);
-      }
-
-      return (
-        <div className="container mx-auto px-6 py-12">
-          <Modal
-            isOpen={modalState.isOpen}
-            onClose={closeDeleteModal}
-            onConfirm={confirmDelete}
-            title="Delete Product"
-          >
-            Are you sure you want to permanently delete this product? This action cannot be undone.
-          </Modal>
-          <button onClick={() => setPage('admin')} className="flex items-center space-x-2 mb-8 text-gray-400 hover:text-white">
-            <ArrowLeftIcon />
-            <span>Back to Admin</span>
-          </button>
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold">Manage Products</h1>
-            <button onClick={() => setIsEditing({})} className="bg-teal-500 hover:bg-teal-600 flex items-center space-x-2 px-4 py-2 rounded-lg">
-              <PlusCircleIcon />
-              <span>Add Product</span>
-            </button>
-          </div>
-
-          {isEditing !== null && (
-            <div className="mb-12">
-              <ProductForm product={isEditing} onSave={handleSave} onCancel={() => setIsEditing(null)} />
-            </div>
-          )}
-
-          <div className="bg-gray-800 rounded-lg shadow-xl overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-gray-700">
-                <tr>
-                  <th className="p-4">Name</th>
-                  <th className="p-4">Category</th>
-                  <th className="p-4">Price</th>
-                  <th className="p-4">Stock</th>
-                  <th className="p-4">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map(product => (
-                  <tr key={product.id} className="border-b border-gray-700">
-                    <td className="p-4">{product.name}</td>
-                    <td className="p-4">{product.category}</td>
-                    <td className="p-4">{(product.selling_price || 0).toFixed(2)} EGP</td>
-                    <td className="p-4">{product.stock || 0}</td>
-                    <td className="p-4 flex space-x-4">
-                      <button onClick={() => setIsEditing(product)}><EditIcon className="w-5 h-5 hover:text-teal-400" /></button>
-                      <button onClick={() => openDeleteModal(product.id)}><TrashIcon className="w-5 h-5 hover:text-red-500" /></button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      );
-    }
-
-    const AdminOrdersPage = ({ setPage }) => {
-      const [orders, setOrders] = React.useState([]);
-      const [isLoading, setIsLoading] = React.useState(true);
-
-      React.useEffect(() => {
-        const fetchOrders = async () => {
-          try {
-            const { data, error } = await supabaseClient
-              .from('orders')
-              .select('*')
-              .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            setOrders(data);
-          } catch (error) {
-            console.error("Error fetching all orders:", error);
-          } finally {
-            setIsLoading(false);
-          }
-        };
-        fetchOrders();
-      }, []);
-
-      const handleStatusUpdate = async (orderId, newStatus) => {
-        try {
-          const { error } = await supabaseClient
-            .from('orders')
-            .update({ status: newStatus })
-            .eq('id', orderId);
-
-          if (error) throw error;
-
-          setOrders(prevOrders =>
-            prevOrders.map(order => order.id === orderId ? { ...order, status: newStatus } : order)
-          );
-        } catch (error) {
-          console.error("Error updating order status:", error);
-          alert('Failed to update status.');
-        }
-      };
-
-      if (isLoading) return <div className="text-center py-20 text-xl">Loading all orders...</div>;
-
-      return (
-        <div className="container mx-auto px-6 py-12">
-          <button onClick={() => setPage('admin')} className="flex items-center space-x-2 mb-8 text-gray-400 hover:text-white">
-            <ArrowLeftIcon />
-            <span>Back to Admin</span>
-          </button>
-          <h1 className="text-3xl font-bold mb-8">Manage Orders</h1>
-          <div className="bg-gray-800 rounded-lg shadow-xl overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-gray-700">
-                <tr>
-                  <th className="p-4">Customer</th>
-                  <th className="p-4">Total</th>
-                  <th className="p-4">Date</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4">Update Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map(order => (
-                  <tr key={order.id} className="border-b border-gray-700">
-                    <td className="p-4">{order.customer_details.name}<br /><span className="text-sm text-gray-400">{order.customer_details.phone}</span></td>
-                    <td className="p-4">{order.total.toFixed(2)} EGP</td>
-                    <td className="p-4 text-sm">{new Date(order.created_at).toLocaleDateString()}</td>
-                    <td className="p-4"><span className={`px-2 py-1 text-xs font-semibold rounded-full ${order.status === 'Shipped' ? 'bg-blue-500/20 text-blue-400' : order.status === 'Delivered' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>{order.status}</span></td>
-                    <td className="p-4">
-                      <select onChange={(e) => handleStatusUpdate(order.id, e.target.value)} value={order.status} className="bg-gray-700 border-gray-600 rounded-md p-2 focus:ring-teal-500 focus:border-teal-500">
-                        <option>Pending</option>
-                        <option>Shipped</option>
-                        <option>Delivered</option>
-                        <option>Cancelled</option>
-                      </select>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      );
-    };
-
-    const Footer = ({ setPage }) => {
-      return (
-        <footer className="bg-gray-800 text-gray-400 mt-16">
-          <div className="container mx-auto px-6 py-8">
-            <div className="text-center">
-              <p>&copy; {new Date().getFullYear()} Baz Sport. All Rights Reserved.</p>
-            </div>
-          </div>
-        </footer>
-      );
-    };
-
-    function App() {
-      const [page, setPage] = React.useState('home');
-      const [user, setUser] = React.useState(null);
-      const [authError, setAuthError] = React.useState(null);
-      const [isAuthLoading, setIsAuthLoading] = React.useState(true);
-      const [products, setProducts] = React.useState([]);
-      const [isLoadingProducts, setIsLoadingProducts] = React.useState(true);
-      const [dbError, setDbError] = React.useState(null);
-      const [cart, setCart] = React.useState(() => {
-        try {
-          const localData = localStorage.getItem('baz-sport-cart-supabase');
-          return localData ? JSON.parse(localData) : [];
-        } catch (error) {
-          return [];
-        }
-      });
-      const [selectedProductId, setSelectedProduct] = React.useState(null);
-      const [latestOrderId, setLatestOrderId] = React.useState(null);
-      const [searchTerm, setSearchTerm] = React.useState('');
-      const [categories, setCategories] = React.useState([]);
-
-      // Authentication & Profile Fetching
-      React.useEffect(() => {
-        const fetchUserAndProfile = async () => {
-          const { data: { session } } = await supabaseClient.auth.getSession();
-          if (session) {
-            const { data: profile } = await supabaseClient
-              .from('profiles')
-              .select(`*`)
-              .eq('id', session.user.id)
-              .single();
-            setUser({ ...session.user, ...profile });
-          }
-          setIsAuthLoading(false);
-        };
-        fetchUserAndProfile();
-
-        const { data: authListener } = supabaseClient.auth.onAuthStateChange(async (_event, session) => {
-          if (session) {
-            const { data: profile } = await supabaseClient
-              .from('profiles')
-              .select(`*`)
-              .eq('id', session.user.id)
-              .single();
-            setUser({ ...session.user, ...profile });
-          } else {
-            setUser(null);
-          }
-          setIsAuthLoading(false);
-        });
-
-        return () => {
-          if (authListener && authListener.subscription) {
-            authListener.subscription.unsubscribe();
-          }
-        }
-      }, []);
-
-      // Fetch Products
-      const fetchProducts = async () => {
-        try {
-          setIsLoadingProducts(true);
-          setDbError(null);
-          const { data, error } = await supabaseClient
-            .from('products')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-          if (error) throw error;
-          setProducts(data);
-          const productCategories = [...new Set(data.map(p => p.category).filter(Boolean))];
-          setCategories(productCategories);
-
-        } catch (error) {
-          if (error.message.includes("relation \"public.products\" does not exist")) {
-            setDbError("Database not fully set up. Please run the complete SQL script from the setup guide.");
-          } else {
-            console.error("Error fetching products: ", error);
-            setDbError("An unexpected error occurred while fetching products.");
-          }
-        } finally {
-          setIsLoadingProducts(false);
-        }
-      };
-
-      React.useEffect(() => {
-        fetchProducts();
-      }, []);
-
-      // Persist cart to localStorage
-      React.useEffect(() => {
-        localStorage.setItem('baz-sport-cart-supabase', JSON.stringify(cart));
-      }, [cart]);
-
-      const handleSignUp = async (email, password) => {
-        setAuthError(null);
-        try {
-          const { error } = await supabaseClient.auth.signUp({ email, password });
-          if (error) throw error;
-          setPage('home');
-        } catch (error) {
-          setAuthError(error.message);
-        }
-      };
-
-      const handleLogin = async (email, password) => {
-        setAuthError(null);
-        try {
-          const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-          if (error) throw error;
-          setPage('home');
-        } catch (error) {
-          setAuthError(error.message);
-        }
-      };
-
-      const handleLogout = async () => {
-        try {
-          await supabaseClient.auth.signOut();
-          setPage('home');
-        } catch (error) {
-          console.error("Logout error:", error);
-        }
-      };
-
-      const addToCart = (productToAdd, quantity, size) => {
-        const productInDb = products.find(p => p.id === productToAdd.id);
-        if (!productInDb || productInDb.stock < 1) {
-          alert("This product is out of stock.");
-          return;
-        }
-
-        setCart(prevCart => {
-          const existingItem = prevCart.find(item => item.productId === productToAdd.id && item.size === size);
-          const currentQuantityInCart = existingItem ? existingItem.quantity : 0;
-
-          if (currentQuantityInCart + quantity > productInDb.stock) {
-            alert(`Sorry, only ${productInDb.stock} of this item are available.`);
-            return prevCart;
-          }
-
-          if (existingItem) {
-            return prevCart.map(item =>
-              item.cartItemId === existingItem.cartItemId
-                ? { ...item, quantity: item.quantity + quantity }
-                : item
-            );
-          } else {
-            const newItem = {
-              cartItemId: `${productToAdd.id}-${size}-${Date.now()}`,
-              productId: productToAdd.id,
-              name: productToAdd.name,
-              price: productToAdd.offer_price || productToAdd.selling_price,
-              size,
-              quantity,
-            };
-            return [...prevCart, newItem];
-          }
-        });
-      };
-
-      const removeFromCart = (itemIdToRemove) => {
-        setCart(prevCart => prevCart.filter(item => item.cartItemId !== itemIdToRemove));
-      };
-
-      const updateCartQuantity = (itemIdToUpdate, newQuantity) => {
-        if (newQuantity < 1) {
-          removeFromCart(itemIdToUpdate);
-          return;
-        }
-        setCart(prevCart => prevCart.map(item =>
-          item.cartItemId === itemIdToUpdate ? { ...item, quantity: newQuantity } : item
-        ));
-      };
-
-      const placeOrder = async (customerDetails, total) => {
-        if (!user) {
-          setPage('login');
-          return;
-        }
-        try {
-          const { data, error } = await supabaseClient
-            .from('orders')
-            .insert([{
-              user_id: user.id,
-              customer_details: customerDetails,
-              items: cart,
-              total: total,
-              status: 'Pending',
-              payment_method: 'Cash on Delivery'
-            }])
-            .select('id')
-            .single();
-
-          if (error) throw error;
-
-          // You would typically call an RPC function here to decrement stock
-          setLatestOrderId(data.id);
-          setCart([]);
-          setPage('orderConfirmation');
-          fetchProducts();
-        } catch (error) {
-          console.error("Order failed: ", error);
-          alert("There was an error placing your order: " + error.message);
-        }
-      };
-
-      // --- ADMIN CRUD Functions ---
-      const handleAddProduct = async (productData) => {
-        try {
-          const { error } = await supabaseClient.from('products').insert([productData]);
-          if (error) throw error;
-          fetchProducts();
-        } catch (error) {
-          console.error("Error adding product: ", error);
-          alert("Failed to add product.");
-        }
-      };
-      const handleUpdateProduct = async (productId, productData) => {
-        try {
-          const { error } = await supabaseClient.from('products').update(productData).eq('id', productId);
-          if (error) throw error;
-          fetchProducts();
-        } catch (error) {
-          console.error("Error updating product: ", error);
-          alert("Failed to update product.");
-        }
-      };
-      const handleDeleteProduct = async (productId) => {
-        try {
-          const { error } = await supabaseClient.from('products').delete().eq('id', productId);
-          if (error) throw error;
-          fetchProducts();
-        } catch (error) {
-          console.error("Error deleting product: ", error);
-          alert("Failed to delete product.");
-        }
-      };
-
-      const renderPage = () => {
-        if (isAuthLoading) return <div className="text-center py-20 text-xl h-screen flex items-center justify-center">Loading...</div>;
-
-        if (dbError) {
-          return (
-            <div className="container mx-auto px-6 py-20 text-center">
-              <h1 className="text-3xl font-bold text-red-500 mb-4">Database Setup Required</h1>
-              <div className="mt-6 p-4 bg-gray-800 rounded-lg text-left max-w-2xl mx-auto">
-                <p className="font-bold text-white mb-2">Error Details:</p>
-                <code className="text-gray-300 bg-gray-700 p-2 rounded block">{dbError}</code>
-                <p className="font-bold text-white mt-4">Next Step:</p>
-                <p className="text-gray-400 mt-2">Please go to the "Final Setup Guide" and run the SQL script in your Supabase project.</p>
-              </div>
-            </div>
-          );
-        }
-
-        if (selectedProductId) {
-          const selectedProductData = products.find(p => p.id === selectedProductId);
-          return <ProductDetailPage product={selectedProductData} setSelectedProduct={setSelectedProduct} addToCart={addToCart} user={user} setPage={setPage} />
-        }
-
-        switch (page) {
-          case 'home':
-            return <HomePage products={products} setPage={setPage} addToCart={addToCart} setSelectedProduct={setSelectedProduct} />;
-          case 'products':
-            return <ProductsPage products={products} isLoading={isLoadingProducts} addToCart={addToCart} setSelectedProduct={setSelectedProduct} categories={categories} searchTerm={searchTerm} />;
-          case 'offers':
-            return <OffersPage products={products} isLoading={isLoadingProducts} addToCart={addToCart} setSelectedProduct={setSelectedProduct} />;
-          case 'cart':
-            return <CartPage cart={cart} products={products} updateCartQuantity={updateCartQuantity} removeFromCart={removeFromCart} setPage={setPage} user={user} />;
-          case 'checkout':
-            if (!user) return <AuthForm isLogin={true} setPage={setPage} handleSubmit={handleLogin} error={authError} />;
-            if (cart.length === 0) {
-              setPage('products');
-              return null;
-            }
-            return <CheckoutPage cart={cart} products={products} placeOrder={placeOrder} user={user} />;
-          case 'orderConfirmation':
-            return <OrderConfirmationPage orderId={latestOrderId} setPage={setPage} />;
-          case 'login':
-            return <AuthForm isLogin={true} setPage={setPage} handleSubmit={handleLogin} error={authError} />;
-          case 'signup':
-            return <AuthForm isLogin={false} setPage={setPage} handleSubmit={handleSignUp} error={authError} />;
-          case 'profile':
-            if (!user) return <AuthForm isLogin={true} setPage={setPage} handleSubmit={handleLogin} error={authError} />;
-            return <ProfilePage user={user} handleLogout={handleLogout} setPage={setPage} />;
-          case 'admin':
-            if (!isAdmin) return <HomePage products={products} setPage={setPage} setSelectedProduct={setSelectedProduct} addToCart={addToCart} />;
-            return <AdminDashboardPage setPage={setPage} />
-          case 'admin-products':
-            if (!isAdmin) return <HomePage products={products} setPage={setPage} setSelectedProduct={setSelectedProduct} addToCart={addToCart} />;
-            return <AdminProductsPage products={products} setPage={setPage} onProductAdd={handleAddProduct} onProductUpdate={handleUpdateProduct} onProductDelete={handleDeleteProduct} />
-          case 'admin-orders':
-            if (!isAdmin) return <HomePage products={products} setPage={setPage} setSelectedProduct={setSelectedProduct} addToCart={addToCart} />;
-            return <AdminOrdersPage setPage={setPage} />
-          default:
-            return <HomePage products={products} setPage={setPage} addToCart={addToCart} setSelectedProduct={setSelectedProduct} />;
-        }
-      }
-
-      const showHeaderFooter = page !== 'login' && page !== 'signup';
-      const isAdmin = user && user.role === ADMIN_ROLE;
-
-      return (
-        <div className="bg-gray-900 text-white min-h-screen font-sans flex flex-col">
-          <Header setPage={setPage} user={user} handleLogout={handleLogout} cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)} onSearch={setSearchTerm} setSelectedProduct={setSelectedProduct} />
-          <main className="flex-grow">
-            {renderPage()}
-          </main>
-          {showHeaderFooter && <Footer />}
-        </div>
-      );
-    }
-
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<App />);
-  </script>
+    <script src="renderer.js" type="module"></script>
 </body>
 
 </html>
