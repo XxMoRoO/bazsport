@@ -38,13 +38,34 @@
             color: #1a202c;
         }
 
+        h2 {
+            text-align: center;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-size: 16px;
+            border-top: 1px dashed #ccc;
+            padding-top: 10px;
+        }
+
         .info {
             font-size: 12px;
             color: #555;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
 
         .info p {
+            margin: 2px 0;
+        }
+
+        .customer-info {
+            font-size: 12px;
+            color: #555;
+            margin-bottom: 20px;
+            border-top: 1px dashed #ccc;
+            padding-top: 10px;
+        }
+
+        .customer-info p {
             margin: 2px 0;
         }
 
@@ -105,13 +126,16 @@
 
 <body>
     <div class="receipt-frame">
-        <h1>Baz Sport</h1>
+        <h1>Baz Sport</h1> <!-- Changed name here -->
         <div class="info">
             <p>Date: {{saleDate}}</p>
             <p>Receipt ID: {{saleId}}</p>
             <p>Cashier: {{username}}</p>
         </div>
-        <hr>
+
+        {{customerInfo}}
+
+        <h2>المبيعات / Sale</h2>
         <table>
             <thead>
                 <tr>
@@ -125,43 +149,31 @@
                 {{itemsHtml}}
             </tbody>
         </table>
+
+        {{returnsSection}}
+
         <div class="totals">
+            <p><strong>Subtotal:</strong> {{subtotal}} EGP</p>
             <p><strong>Discount:</strong> {{discountAmount}} EGP</p>
-            <p><strong>Total:</strong> {{finalTotal}} EGP</p>
+            <p><strong>Delivery Fee:</strong> {{deliveryFee}} EGP</p> <!-- New line for delivery fee -->
+            <p><strong>Total Returns:</strong> {{totalReturns}} EGP</p>
+            <hr style="border-top: 1px dashed #ccc; margin: 5px 0;">
+            <!-- This div will be dynamically populated by JavaScript in renderer.js -->
+            <div id="final-total-section"></div>
             <p><strong>Paid:</strong> {{paidAmount}} EGP</p>
             <p><strong>Change:</strong> {{changeAmount}} EGP</p>
         </div>
+
         <div class="logo-container">
-            <img src="{{logoSrc}}" alt="Baz Sport Logo" class="logo">
+            <img src="{{logoSrc}}" alt="Baz Sport Logo" class="logo"> <!-- Changed name here -->
             <p class="thank-you-msg">Thanks for your purchase ❤️</p>
         </div>
-        <!-- === MODIFICATION: Added Footer === -->
+
         <div class="footer">
             <p>System by: Omar Abdelall</p>
-            <p>Email: moroplus15@gmail.com</p>
             <p>Phone No: 01009715199</p>
         </div>
-        <!-- === END MODIFICATION === -->
     </div>
-
-    <script>
-        // This script ensures printing only happens after the logo is loaded
-        const logoImage = document.querySelector('.logo');
-        if (logoImage) {
-            // If the image is already loaded (e.g., from cache), print immediately
-            if (logoImage.complete) {
-                window.print();
-            } else {
-                // Otherwise, add an event listener to print after it loads
-                logoImage.onload = function () {
-                    window.print();
-                };
-            }
-        } else {
-            // If for some reason there is no logo, print right away
-            window.print();
-        }
-    </script>
 </body>
 
 </html>

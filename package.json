@@ -1,39 +1,48 @@
 {
-  "name": "baz-sport-desktop",
+  "name": "baz-sport",
   "version": "1.0.0",
-  "description": "Inventory management system for Baz Sport",
+  "description": "A Point of Sale application for Baz Sport",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "build": "electron-builder"
   },
   "keywords": [],
-  "author": "",
+  "author": "Omar Abdelall",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^28.0.0",
-    "electron-builder": "^24.9.1"
+    "electron": "^28.3.3",
+    "electron-builder": "^24.13.3"
   },
   "build": {
-    "appId": "com.bazsport.desktop",
+    "appId": "com.bazsport",
     "productName": "Baz Sport",
-    "win": {
-      "target": "nsis",
-      "icon": "build/bazsport.ico"
+    "directories": {
+      "output": "dist"
     },
     "files": [
-      "main.js",
-      "preload.js",
-      "renderer.js",
-      "login.js",
-      "index.html",
-      "login.html",
-      "receipt.html",
-      "users.html",
-      "build/**/*"
-    ]
-  },
-  "dependencies": {
-    "firebase": "^11.9.1"
+      "**/*",
+      "!node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "build",
+        "to": "build"
+      },
+      {
+        "from": "libs",
+        "to": "libs"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true
+    }
   }
 }
