@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Booking Invoice</title>
+    <style>
+        body {
+            /* تم تعديل الخط ليكون أكثر سماكة */
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            font-weight: 700;
+            /* Use 700 for bold */
+            margin: 0;
+            background-color: #fff;
+            color: #000;
+            /* Ensure text is black for better contrast */
+        }
+
+        .receipt-frame {
+            width: 80mm;
+            margin: 20px auto;
+            padding: 15px;
+            border: 2px solid #000;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border-bottom: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+
+        h1 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 5px;
+            color: #000;
+        }
+
+        h2 {
+            text-align: center;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-size: 16px;
+            border-top: 1px dashed #ccc;
+            padding-top: 10px;
+            color: #000;
+        }
+
+        .info p,
+        .customer-info p,
+        .totals p,
+        .footer p {
+            margin: 3px 0;
+        }
+
+        .totals {
+            margin-top: 20px;
+            text-align: right;
+        }
+
+        .logo-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .logo {
+            max-width: 100px;
+            margin-bottom: 5px;
+        }
+
+        .thank-you-msg {
+            font-style: italic;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="receipt-content" class="receipt-frame">
+        <h1>BAZ SPORT</h1>
+        <div class="info">
+            <p>Date: {{bookingDate}}</p>
+            <p>Booking ID: {{bookingId}}</p>
+            <p>Cashier: {{username}}</p>
+        </div>
+
+        <div class="customer-info">
+            <p><strong>Customer:</strong> {{customerName}}</p>
+            <p><strong>Phone:</strong> {{customerPhone}}</p>
+            <p><strong>Address:</strong> {{customerAddress}}</p>
+            <p><strong>City:</strong> {{customerCity}}</p>
+        </div>
+
+        <h2>الحجز / Booking</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Qty</th>
+                    <th>Price</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{itemsHtml}}
+            </tbody>
+        </table>
+
+        <div class="totals">
+            <p><strong>Subtotal:</strong> {{subtotal}} EGP</p>
+            <p><strong>Deposit Paid:</strong> {{deposit}} EGP </p>
+            <hr style="border-top: 1px dashed #ccc; margin: 5px 0;">
+            <p><strong>Amount Due:</strong> {{amountDue}} EGP</p>
+        </div>
+
+        <div class="logo-container">
+            <!-- تم تعديل المسار هنا ليناسب عملية البناء -->
+            <img src="build/black-icon.png" alt="Baz Sport Logo" class="logo">
+            <p class="thank-you-msg">Thank you for your booking!</p>
+        </div>
+
+        <div class="footer">
+            <p>System by: Omar Abdelall</p>
+            <p>Phone No: +201201185523</p>
+        </div>
+    </div>
+</body>
+
+</html>
