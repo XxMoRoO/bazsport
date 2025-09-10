@@ -5,7 +5,7 @@
  */
 
 import { state, translations } from './state.js';
-import { showLoader, hideLoader, showNotification, getProductTotalQuantity } from './utils.js';
+import { showLoader, hideLoader, showNotification, getProductTotalQuantity, generateSoldItemsReportPDF } from './utils.js';
 // لا نستورد createNewReceipt هنا لتجنب الاعتماد الدائري
 
 // --- حفظ البيانات ---
@@ -333,12 +333,14 @@ export async function exportReportToPDF() {
         let filteredDefects = state.defects;
         let filteredPayments = state.suppliers.flatMap(s => s.payments || []);
         let filteredShipments = state.shipments; // Filter shipments too
+        let filteredDailyExpenses = state.expenses.daily;
 
         if (selectedPeriod) {
             filteredSales = filteredSales.filter(s => s.createdAt.startsWith(selectedPeriod));
             filteredDefects = filteredDefects.filter(d => d.date.startsWith(selectedPeriod));
             filteredPayments = filteredPayments.filter(p => p.date.startsWith(selectedPeriod));
             filteredShipments = filteredShipments.filter(sh => sh.date && sh.date.startsWith(selectedPeriod)); // Added this
+            filteredDailyExpenses = filteredDailyExpenses.filter(e => e.date.startsWith(selectedPeriod));
         }
         if (userFilter !== 'all') {
             filteredSales = filteredSales.filter(s => s.cashier === userFilter);
@@ -347,6 +349,7 @@ export async function exportReportToPDF() {
         // --- 3. Calculate All Metrics ---
         let totalRevenue = 0, grossProfit = 0, totalItemsSold = 0, totalCashSales = 0, totalInstaPaySales = 0, totalVCashSales = 0, totalFreeDeliveries = 0;
         let customerShippingExpense = 0;
+        let totalReturns = 0;
 
         filteredSales.forEach(s => {
             totalRevenue += s.totalAmount;
@@ -358,13 +361,20 @@ export async function exportReportToPDF() {
             customerShippingExpense += (s.shippingCost || 0) + (s.returnDeliveryFee || 0);
             s.items.forEach(item => {
                 totalItemsSold += item.quantity - (item.returnedQty || 0);
+                totalReturns += (item.returnedQty || 0);
             });
         });
 
         const totalPurchaseCost = filteredShipments.reduce((sum, sh) => sum + sh.totalCost, 0);
-        const totalDefectsCost = filteredDefects.reduce((sum, defect) => sum + (defect.purchasePrice * defect.quantity), 0);
+        const totalDefectsCost = filteredDefects.reduce((sum, defect) => {
+            const unreturnedQty = defect.quantity - (defect.returnedQty || 0);
+            return sum + (defect.purchasePrice * unreturnedQty);
+        }, 0);
 
         const supplierShippingCost = filteredShipments.reduce((sum, sh) => sum + (sh.shippingCost || 0), 0);
+
+        const totalDailyExpenses = filteredDailyExpenses.reduce((sum, e) => sum + e.amount, 0);
+
 
         let totalSalariesExpense = 0;
         const monthForSalaries = periodType === 'day' ? selectedPeriod.slice(0, 7) : selectedPeriod;
@@ -382,8 +392,8 @@ export async function exportReportToPDF() {
             }
         }
 
-        const totalExpenses = totalPurchaseCost + totalSalariesExpense + customerShippingExpense + supplierShippingCost + totalDefectsCost;
-        const netProfit = grossProfit - totalSalariesExpense - customerShippingExpense - supplierShippingCost - totalDefectsCost;
+        const totalExpenses = totalPurchaseCost + totalSalariesExpense + customerShippingExpense + supplierShippingCost + totalDefectsCost + totalDailyExpenses;
+        const netProfit = grossProfit - totalSalariesExpense - customerShippingExpense - supplierShippingCost - totalDefectsCost - totalDailyExpenses;
 
         // --- 4. Build PDF ---
         doc.setFont('helvetica', 'normal');
@@ -405,6 +415,7 @@ export async function exportReportToPDF() {
             ['Customer Shipping', `${customerShippingExpense.toFixed(2)} EGP`],
             ['Supplier Shipping', `${supplierShippingCost.toFixed(2)} EGP`],
             ['Defects Cost', `${totalDefectsCost.toFixed(2)} EGP`],
+            ['Daily Expenses', `${totalDailyExpenses.toFixed(2)} EGP`],
             ['Total Expenses', `${totalExpenses.toFixed(2)} EGP`],
             [{ content: 'Net Summary', colSpan: 2, styles: { fontStyle: 'bold', fillColor: '#d1ecf1' } }],
             ['Net Profit', `${netProfit.toFixed(2)} EGP`],
@@ -415,7 +426,7 @@ export async function exportReportToPDF() {
             head: [['Metric', 'Value']],
             body: summaryData,
             theme: 'striped',
-            headStyles: { fillColor: [176, 136, 142] }
+            headStyles: { fillColor: [44, 62, 80], textColor: [255, 255, 255] }
         });
 
         const salesData = filteredSales.map(sale => [
@@ -431,7 +442,7 @@ export async function exportReportToPDF() {
             head: [['ID', 'Date', 'Customer', 'Cashier', 'Total']],
             body: salesData,
             theme: 'grid',
-            headStyles: { fillColor: [176, 136, 142] }
+            headStyles: { fillColor: [44, 62, 80], textColor: [255, 255, 255] }
         });
 
         doc.save(`sales-report-${new Date().toISOString().slice(0, 10)}.pdf`);
@@ -494,7 +505,7 @@ export async function exportInventoryToPDF() {
             head: [['Product Name', 'Code', 'Category', 'Color', 'Size', 'Purchase Price', 'Selling Price', 'Stock Qty']],
             body: body,
             theme: 'striped',
-            headStyles: { fillColor: [176, 136, 142] },
+            headStyles: { fillColor: [44, 62, 80], textColor: [255, 255, 255] },
             didDrawCell: (data) => {
                 // Custom styling for main product rows
                 if (data.row.raw[0].styles && data.row.raw[0].styles.fontStyle === 'bold') {
@@ -508,6 +519,45 @@ export async function exportInventoryToPDF() {
     } catch (error) {
         console.error("Inventory PDF Export Error:", error);
         showNotification('Failed to export inventory report.', 'error');
+    } finally {
+        hideLoader();
+    }
+}
+
+// [--- إضافة ---] دالة جديدة لتصدير تقرير المبيعات المفصل
+export async function exportSoldItemsToPDF() {
+    showLoader();
+    try {
+        // --- 1. الحصول على الفلاتر ---
+        const timeFilter = document.getElementById('time-filter-type')?.value || 'all';
+        const monthFilter = document.getElementById('report-month-picker')?.value;
+        const dayFilter = document.getElementById('report-day-picker')?.value;
+        const userFilter = document.getElementById('user-filter')?.value || 'all';
+
+        // --- 2. فلترة البيانات من الحالة (state) ---
+        let filteredSales = state.sales;
+        let selectedPeriod = null;
+        if (timeFilter === 'month' && monthFilter) {
+            selectedPeriod = monthFilter;
+        }
+        if (timeFilter === 'day' && dayFilter) {
+            selectedPeriod = dayFilter;
+        }
+
+        if (selectedPeriod) {
+            filteredSales = filteredSales.filter(s => s.createdAt.startsWith(selectedPeriod));
+        }
+        if (userFilter !== 'all') {
+            filteredSales = filteredSales.filter(s => s.cashier === userFilter);
+        }
+
+        // --- 3. استدعاء دالة إنشاء التقرير من utils.js ---
+        await generateSoldItemsReportPDF(filteredSales);
+
+        showNotification('Detailed sold items report exported to PDF.', 'success');
+    } catch (error) {
+        console.error("Sold Items PDF Export Error:", error);
+        showNotification('Failed to export sold items report.', 'error');
     } finally {
         hideLoader();
     }
@@ -554,7 +604,7 @@ export async function exportReturnsToPDF() {
             head: [['Sale ID', 'Date', 'Product', 'Qty Returned', 'Value (EGP)']],
             body: returnsData,
             theme: 'grid',
-            headStyles: { fillColor: [176, 136, 142] }
+            headStyles: { fillColor: [44, 62, 80], textColor: [255, 255, 255] }
         });
 
         doc.save(`returns-report-${new Date().toISOString().slice(0, 10)}.pdf`);
@@ -632,11 +682,10 @@ export function exportSalariesToExcel() {
     }
 }
 
-// [--- إصلاح ---] تم تعديل دالة الطباعة لتعتمد على مقارنة السلسلة النصية للتاريخ
+// [--- تعديل وتصحيح ---] تم تعديل دالة الطباعة لتعتمد على مقارنة السلسلة النصية للتاريخ وتغيير لون التوالف
 export async function printShipmentInvoice(supplierId, date) {
     showLoader();
     try {
-        // [--- إصلاح ---] استخدام .startsWith() لمقارنة التواريخ بشكل آمن
         const shipmentsOnDate = state.shipments.filter(s => s.supplierId === supplierId && s.date.startsWith(date));
 
         if (shipmentsOnDate.length === 0) {
@@ -663,7 +712,7 @@ export async function printShipmentInvoice(supplierId, date) {
                 .reduce((sum, d) => sum + d.quantity, 0);
 
             const quantityDisplay = defectiveCountForItem > 0
-                ? `${item.quantity} <span style="color: #C97C7C; font-style: italic;">(${defectiveCountForItem} defective)</span>`
+                ? `${item.quantity} <span style="color: #121f42; font-style: italic;">(${defectiveCountForItem} defective)</span>`
                 : item.quantity;
 
             return `
@@ -686,7 +735,7 @@ export async function printShipmentInvoice(supplierId, date) {
         `).join('');
 
         const defectsSection = defectsForInvoice.length > 0 ? `
-            <h2 style="color: #C97C7C;">Defective Items Details</h2>
+            <h2 style="color: #121f42;">Defective Items Details</h2>
             <table>
                 <thead>
                     <tr><th>Product & Reason</th><th>Quantity</th><th>Unit Cost</th><th>Total Cost</th></tr>
@@ -707,7 +756,7 @@ export async function printShipmentInvoice(supplierId, date) {
                         th { background-color: #f2f2f2; }
                         .summary { text-align: right; margin-top: 20px; font-size: 1.2em; border-top: 2px solid #333; padding-top: 10px; }
                         .summary p { margin: 5px 0; }
-                        .defective-row { color: #C97C7C; font-weight: bold; }
+                        .defective-row { color: #121f42; font-weight: bold; }
                     </style>
                 </head>
                 <body>
@@ -727,7 +776,7 @@ export async function printShipmentInvoice(supplierId, date) {
 
                     <div class="summary">
                         <p><strong>Gross Cost:</strong> ${grossCost.toFixed(2)} EGP</p>
-                        ${defectsValue > 0 ? `<p><strong>Defects Value:</strong> <span style="color: #C97C7C;">-${defectsValue.toFixed(2)} EGP</span></p>` : ''}
+                        ${defectsValue > 0 ? `<p><strong>Defects Value:</strong> <span style="color: #121f42;">-${defectsValue.toFixed(2)} EGP</span></p>` : ''}
                         <p><strong>Net Cost:</strong> ${netCost.toFixed(2)} EGP</p>
                         <p><strong>Shipping Cost:</strong> ${shippingCost.toFixed(2)} EGP</p>
                         <p><strong>Final Total: ${finalTotal.toFixed(2)} EGP</strong></p>

@@ -111,6 +111,12 @@ export const translations = {
         endedBy: 'Ended By',
         reopenShift: 'Re-open Shift',
         confirmReopenShift: 'Are you sure you want to re-open this shift? The current open shift will be discarded.',
+        // [--- إضافة ---] نصوص جديدة لتقرير المنتجات المباعة
+        soldItemsDetails: 'Sold Items Details',
+        colItem: 'Item',
+        colQuantitySold: 'Qty Sold',
+        colTotalValue: 'Total Value',
+        colStockRemaining: 'Stock Remaining',
         // --- النصوص الحالية ---
         navHome: 'Home', navInventory: 'Inventory', navSelling: 'Selling', navBooking: 'Booking', navHistory: 'History', navCustomers: 'Customers', navSalaries: 'Salaries', navAbout: 'About', btnLogout: 'Logout', navBestSellers: 'Best Sellers', navDefects: 'Defects', navSuppliers: 'Suppliers',
         searchPlaceholder: 'Search by name, code, or barcode...',
@@ -197,7 +203,6 @@ export const translations = {
         rent: 'Monthly Rent',
         shippingExpense: 'Shipping Expense',
         totalExpenses: 'Total Expenses',
-        totalProfit: 'Total Profit',
         stockAdjustConfirmTitle: 'Confirm Stock Reduction',
         stockAdjustMessage: 'You are reducing the stock for this item. How should this be handled?',
         deductCostOption: 'Deduct Cost & Remove from Stock',
@@ -307,6 +312,8 @@ export const translations = {
         productQuantities: 'Product Quantities',
         totalInvoiceCost: 'Total Invoice Cost',
         addToInvoice: 'Add to Invoice',
+        // [--- إضافة ---] نص جديد لزر تقرير المبيعات المفصل
+        exportSales: 'Export Sold Items PDF',
     },
     ar: {
         // [--- إضافة ---] نصوص جديدة لصفحة الإعدادات والنسخ الاحتياطي
@@ -346,6 +353,12 @@ export const translations = {
         endedBy: 'بواسطة',
         reopenShift: 'إعادة فتح اليومية',
         confirmReopenShift: 'هل أنت متأكد من إعادة فتح هذه اليومية؟ سيتم تجاهل اليومية المفتوحة حالياً.',
+        // [--- إضافة ---] نصوص جديدة لتقرير المنتجات المباعة
+        soldItemsDetails: 'تفاصيل المنتجات المباعة',
+        colItem: 'الصنف',
+        colQuantitySold: 'الكمية المباعة',
+        colTotalValue: 'إجمالي القيمة',
+        colStockRemaining: 'المخزون المتبقي',
         // --- النصوص الحالية ---
         navHome: 'الرئيسية', navInventory: 'المخزن', navSelling: 'البيع', navBooking: 'الحجز', navHistory: 'السجلات', navCustomers: 'العملاء', navSalaries: 'الرواتب', navAbout: 'حول', btnLogout: 'تسجيل الخروج', navBestSellers: 'الأكثر مبيعاً', navDefects: 'التوالف', navSuppliers: 'الموردين',
         searchPlaceholder: 'البحث بالاسم أو الكود أو الباركود...',
@@ -432,7 +445,6 @@ export const translations = {
         rent: 'الإيجار الشهري',
         shippingExpense: 'مصروفات الشحن',
         totalExpenses: 'إجمالي المصروفات',
-        totalProfit: 'إجمالي الأرباح',
         stockAdjustConfirmTitle: 'تأكيد تعديل المخزون',
         stockAdjustMessage: 'أنت تقوم بإنقاص كمية هذا المنتج. كيف تريد التعامل مع هذا الإجراء؟',
         deductCostOption: 'خصم التكلفة وإزالة من المخزون',
@@ -542,5 +554,7 @@ export const translations = {
         productQuantities: 'كميات المنتج',
         totalInvoiceCost: 'التكلفة الإجمالية للفاتورة',
         addToInvoice: 'إضافة للفاتورة',
+        // [--- إضافة ---] نص جديد لزر تقرير المبيعات المفصل
+        exportSales: 'تصدير المبيعات المفصلة PDF',
     }
 };

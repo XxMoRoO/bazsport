@@ -548,8 +548,8 @@ ipcMain.handle('load-receipt-template', async () => {
         const appPath = app.getAppPath();
         const templatePath = path.join(appPath, 'receipt.html');
         const logoPath = app.isPackaged
-            ? path.join(process.resourcesPath, 'build', 'logo.png')
-            : path.join(__dirname, 'build', 'logo.png');
+            ? path.join(process.resourcesPath, 'build', 'black-icon.png')
+            : path.join(__dirname, 'build', 'black-icon.png');
 
         if (!fs.existsSync(templatePath)) throw new Error(`Receipt template not found at ${templatePath}`);
         if (!fs.existsSync(logoPath)) throw new Error(`Logo image not found at ${logoPath}`);
@@ -566,8 +566,8 @@ ipcMain.handle('load-booking-template', async () => {
         const appPath = app.getAppPath();
         const templatePath = path.join(appPath, 'booking-receipt.html');
         const logoPath = app.isPackaged
-            ? path.join(process.resourcesPath, 'build', 'logo.png')
-            : path.join(__dirname, 'build', 'logo.png');
+            ? path.join(process.resourcesPath, 'build', 'black-icon.png')
+            : path.join(__dirname, 'build', 'black-icon.png');
 
         if (!fs.existsSync(templatePath)) throw new Error(`Booking template not found at ${templatePath}`);
         if (!fs.existsSync(logoPath)) throw new Error(`Logo not found at ${logoPath}`);

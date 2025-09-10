@@ -4,7 +4,8 @@
  */
 
 import { state, translations } from './state.js';
-import { getProductTotalQuantity, getCurrentDateAsYYYYMMDD } from './utils.js';
+// [--- تعديل ---] تمت إضافة دالة إنشاء التقرير هنا
+import { getProductTotalQuantity, getCurrentDateAsYYYYMMDD, generateSalesReportPDF } from './utils.js';
 
 // --- دوال عرض وتحديث الواجهة الرسومية ---
 export function updateAdminUI() {
@@ -56,7 +57,10 @@ export function render() {
     if (state.currentPage === 'inventory-page') renderInventoryTable();
     if (state.currentPage === 'selling-page') renderSellingPage();
     if (state.currentPage === 'booking-page') renderBookingPage();
-    if (state.currentPage === 'history-page') renderSalesHistory();
+    if (state.currentPage === 'history-page') {
+        renderSalesHistory();
+        initializeRecordsPageListeners(); // [--- إضافة ---] استدعاء دالة تهيئة زر التقرير
+    }
     if (state.currentPage === 'customers-page') renderCustomersPage();
     if (state.currentPage === 'salaries-page') renderSalariesPage();
     if (state.currentPage === 'best-sellers-page') renderBestSellersPage();
@@ -472,6 +476,8 @@ export function renderCart(receiptId) {
         const product = state.products.find(p => p.id === item.productId);
         const cartItemDiv = document.createElement('div');
         cartItemDiv.className = 'flex flex-col bg-gray-800 p-2 rounded space-y-2'; // Use flex-col and add space
+        cartItemDiv.dataset.receiptId = receiptId; // [--- إضافة ---]
+        cartItemDiv.dataset.index = index; // [--- إضافة ---]
 
         const isEditing = state.editingCartItem && state.editingCartItem.receiptId === receiptId && state.editingCartItem.index === index;
 
@@ -505,9 +511,9 @@ export function renderCart(receiptId) {
                     <div>
                         <label class="text-xs" data-lang-key="colQuantity">Quantity</label>
                         <div class="flex items-center">
-                            <button class="cart-quantity-change-btn btn-secondary px-2 rounded-l" data-amount="-1">-</button>
-                            <input type="number" class="cart-item-quantity-input w-12 text-center p-1 bg-gray-700 border-gray-600" value="${item.quantity}" min="1">
-                            <button class="cart-quantity-change-btn btn-secondary px-2 rounded-r" data-amount="1">+</button>
+                            <button class="cart-quantity-change-btn btn-secondary px-2 rounded-l" data-amount="-1" data-receipt-id="${receiptId}" data-index="${index}">-</button>
+                            <input type="number" class="cart-item-quantity-input w-12 text-center p-1 bg-gray-700 border-gray-600" value="${item.quantity}" min="1" data-receipt-id="${receiptId}" data-index="${index}">
+                            <button class="cart-quantity-change-btn btn-secondary px-2 rounded-r" data-amount="1" data-receipt-id="${receiptId}" data-index="${index}">+</button>
                         </div>
                     </div>
                     <div>
@@ -989,6 +995,39 @@ export function generateReport() {
             (s.cashier && s.cashier.toLowerCase().includes(searchTerm))
         );
     }
+    // ... (بعد فلترة المبيعات)
+
+    // --- [START] New Logic for Sold Items Summary ---
+    const soldItemsSummary = {};
+    filteredSales.forEach(sale => {
+        sale.items.forEach(item => {
+            const netQty = item.quantity - (item.returnedQty || 0);
+            if (netQty > 0) {
+                const variantKey = `${item.productId}-${item.color}-${item.size}`;
+                if (!soldItemsSummary[variantKey]) {
+                    soldItemsSummary[variantKey] = {
+                        productId: item.productId,
+                        name: item.productName,
+                        color: item.color,
+                        size: item.size,
+                        quantitySold: 0,
+                        totalValue: 0,
+                        stockRemaining: 0
+                    };
+                }
+                soldItemsSummary[variantKey].quantitySold += netQty;
+                soldItemsSummary[variantKey].totalValue += netQty * item.unitPrice;
+            }
+        });
+    });
+
+    const soldItemsSummaryArray = Object.values(soldItemsSummary).map(summaryItem => {
+        const product = state.products.find(p => p.id === summaryItem.productId);
+        const stock = product?.colors?.[summaryItem.color]?.sizes?.[summaryItem.size]?.quantity ?? 0;
+        summaryItem.stockRemaining = stock;
+        return summaryItem;
+    }).sort((a, b) => b.quantitySold - a.quantitySold);
+    // --- [END] New Logic for Sold Items Summary ---
 
     let totalRevenue = 0, grossProfit = 0, totalItemsSold = 0, totalCashSales = 0, totalInstaPaySales = 0, totalVCashSales = 0, totalFreeDeliveries = 0, totalSalesShippingExpense = 0, totalReturns = 0;
 
@@ -1044,32 +1083,65 @@ export function generateReport() {
 
     const reportSummaryContainer = document.getElementById('report-summary');
     reportSummaryContainer.innerHTML = `
-        <!-- Income -->
         <div class="bg-gray-800 p-4 rounded-lg"><h3 class="font-bold" data-lang-key="totalRevenue">Total Revenue</h3><p>${totalRevenue.toFixed(2)} EGP</p></div>
         <div class="bg-gray-800 p-4 rounded-lg"><h3 class="font-bold" data-lang-key="totalCashSales">Cash Sales</h3><p>${totalCashSales.toFixed(2)} EGP</p></div>
         <div class="bg-gray-800 p-4 rounded-lg"><h3 class="font-bold" data-lang-key="totalInstaPaySales">InstaPay Sales</h3><p>${totalInstaPaySales.toFixed(2)} EGP</p></div>
         <div class="bg-gray-800 p-4 rounded-lg"><h3 class="font-bold" data-lang-key="totalVCashSales">VCash Sales</h3><p>${totalVCashSales.toFixed(2)} EGP</p></div>
         <div class="bg-green-900/50 p-4 rounded-lg"><h3 class="font-bold text-green-300" data-lang-key="grossProfit">Gross Profit</h3><p class="text-green-300">${grossProfit.toFixed(2)} EGP</p></div>
 
-        <!-- Expenses -->
         <div class="bg-red-900/50 p-4 rounded-lg"><h3 class="font-bold text-red-300" data-lang-key="totalSalaries">Salaries Expense</h3><p class="text-red-300">${totalSalariesExpense.toFixed(2)} EGP</p></div>
         <div class="bg-red-900/50 p-4 rounded-lg"><h3 class="font-bold text-red-300" data-lang-key="shippingExpense">Shipping Expense</h3><p class="text-red-300">${totalShippingExpense.toFixed(2)} EGP</p></div>
         <div class="bg-red-900/50 p-4 rounded-lg"><h3 class="font-bold text-red-300" data-lang-key="totalDefectsCost">Defects Cost</h3><p class="text-red-300">${totalDefectsCost.toFixed(2)} EGP</p></div>
-        <!-- [--- إضافة ---] خانة جديدة للمصاريف اليومية -->
         <div class="bg-red-900/50 p-4 rounded-lg"><h3 class="font-bold text-red-300" data-lang-key="dailyExpenses">Daily Expenses</h3><p class="text-red-300">${totalDailyExpenses.toFixed(2)} EGP</p></div>
         <div class="bg-red-800/60 p-4 rounded-lg"><h3 class="font-bold text-red-200" data-lang-key="operatingExpenses">Total Operating Expenses</h3><p class="text-red-200">${operatingExpenses.toFixed(2)} EGP</p></div>
         
-        <!-- Cash Flow -->
         <div class="bg-blue-900/50 p-4 rounded-lg"><h3 class="font-bold text-blue-300" data-lang-key="supplierPayments">Supplier Payments</h3><p class="text-blue-300">${totalSupplierPayments.toFixed(2)} EGP</p></div>
 
-        <!-- Net -->
         <div class="bg-green-800/60 p-4 rounded-lg"><h3 class="font-bold text-green-200" data-lang-key="netProfit">Net Profit</h3><p class="text-green-200 text-2xl">${netProfit.toFixed(2)} EGP</p></div>
 
-        <!-- Other Stats -->
         <div class="bg-gray-800 p-4 rounded-lg"><h3 class="font-bold" data-lang-key="totalItemsSold">Items Sold</h3><p>${totalItemsSold}</p></div>
         <div class="bg-gray-800 p-4 rounded-lg"><h3 class="font-bold" data-lang-key="totalReturns">Total Returns</h3><p>${totalReturns}</p></div>
         <div class="bg-gray-800 p-4 rounded-lg"><h3 class="font-bold" data-lang-key="totalFreeDeliveries">Free Deliveries</h3><p>${totalFreeDeliveries}</p></div>
     `;
+
+    // ... (بعد كود reportSummaryContainer.innerHTML)
+
+    // --- [START] New UI Rendering for Sold Items Table ---
+    const soldItemsContainer = document.getElementById('sold-items-details');
+    if (soldItemsContainer) {
+        if (soldItemsSummaryArray.length > 0) {
+            soldItemsContainer.innerHTML = `
+            <div class="mt-8">
+                <h2 class="text-2xl font-bold mb-4" data-lang-key="soldItemsTitle">Sold Items Details</h2>
+                <div class="overflow-x-auto bg-secondary-bg rounded-lg shadow">
+                    <table class="w-full text-sm text-left">
+                        <thead class="text-xs uppercase" style="background-color: var(--header-bg);">
+                            <tr>
+                                <th class="p-4" data-lang-key="colProductName">Product</th>
+                                <th class="p-4" data-lang-key="soldQty">Qty Sold</th>
+                                <th class="p-4" data-lang-key="soldValue">Sales Value</th>
+                                <th class="p-4" data-lang-key="stockRemaining">Stock Remaining</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${soldItemsSummaryArray.map(item => `
+                                <tr class="border-b border-gray-700 hover:bg-gray-700">
+                                    <td class="p-4 font-semibold">${item.name} (${item.color}/${item.size})</td>
+                                    <td class="p-4 text-center">${item.quantitySold}</td>
+                                    <td class="p-4 text-center">${item.totalValue.toFixed(2)} EGP</td>
+                                    <td class="p-4 text-center">${item.stockRemaining}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+        } else {
+            soldItemsContainer.innerHTML = ''; // إفراغ الحاوية إذا لم تكن هناك مبيعات
+        }
+    }
+    // --- [END] New UI Rendering for Sold Items Table ---
 
 
     listContainer.innerHTML = '';
@@ -1826,7 +1898,7 @@ export function showSupplierModal(supplier = null) {
     const modal = document.getElementById('supplier-modal');
     modal.innerHTML = `
         <div class="modal-content w-full max-w-md p-6 rounded-lg shadow-lg">
-            <h2 class="text-2xl font-bold mb-4">${supplier ? translations[state.lang].editSupplier : translations[state.lang].addSupplier}</h2>
+            <h2 class="text-2xl font-bold">${supplier ? translations[state.lang].editSupplier : translations[state.lang].addSupplier}</h2>
             <form id="supplier-form" class="space-y-4">
                 <div><label class="block mb-1" data-lang-key="supplierName">Supplier Name</label><input type="text" id="supplier-name-input" class="w-full p-2 rounded-lg" value="${supplier?.name || ''}" required></div>
                 <div><label class="block mb-1" data-lang-key="supplierPhone">Supplier Phone</label><input type="tel" id="supplier-phone-input" class="w-full p-2 rounded-lg" value="${supplier?.phone || ''}"></div>
@@ -2174,7 +2246,6 @@ export function renderInvoiceBuilder() {
     modalContent.innerHTML = `
         <h2 class="text-2xl font-bold mb-4" data-lang-key="invoiceBuilderTitle">New Supplier Invoice</h2>
         
-        <!-- معلومات الفاتورة الأساسية -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 bg-gray-900 rounded-lg">
             <div>
                 <label class="block text-sm font-medium text-gray-400" data-lang-key="supplierName">Supplier</label>
@@ -2190,20 +2261,17 @@ export function renderInvoiceBuilder() {
             </div>
         </div>
 
-        <!-- أزرار إضافة المنتجات -->
         <div class="flex items-center space-x-4 mb-4">
             <h3 class="text-xl font-bold" data-lang-key="addProductToInvoice">Add Product</h3>
             <button id="add-existing-product-to-invoice-btn" class="btn-secondary py-2 px-4 rounded-lg" data-lang-key="addExistingProduct">Add Existing</button>
             <button id="add-new-product-to-invoice-btn" class="btn-secondary py-2 px-4 rounded-lg" data-lang-key="addNewProductToInvoice">Add New</button>
         </div>
 
-        <!-- قائمة أصناف الفاتورة -->
         <h3 class="text-xl font-bold mb-2" data-lang-key="invoiceItems">Invoice Items</h3>
         <div id="invoice-items-container" class="space-y-2 mb-4">
             ${items.map((item, index) => renderInvoiceItem(item, index)).join('') || `<p class="text-gray-500">No items added yet.</p>`}
         </div>
 
-        <!-- الإجمالي وأزرار الحفظ -->
         <div class="flex justify-between items-center mt-6 pt-4 border-t border-gray-700">
             <div>
                 <span class="text-xl font-bold" data-lang-key="totalInvoiceCost">Total Cost:</span>
@@ -2600,15 +2668,14 @@ export function showReconciliationModal(expectedAmount) {
 
 export function closeReconciliationModal() {
     document.getElementById('reconciliation-modal').classList.add('hidden');
-
-
 }
+
 export function showEditDailyExpenseModal(expense) {
     state.editingExpenseId = expense.id;
     const modal = document.getElementById('edit-daily-expense-modal');
     modal.innerHTML = `
         <div class="modal-content w-full max-w-sm p-6 rounded-lg shadow-lg">
-            <h2 class="text-2xl font-bold mb-4">Edit Daily Expense</h2>
+            <h2 class="text-2xl font-bold">Edit Daily Expense</h2>
             <form id="edit-daily-expense-form">
                 <div class="mb-4">
                     <label for="edit-expense-amount-input" class="block mb-2">Amount (EGP)</label>
@@ -2633,3 +2700,68 @@ export function closeEditDailyExpenseModal() {
     document.getElementById('edit-daily-expense-modal').classList.add('hidden');
     state.editingExpenseId = null;
 }
+
+
+// --- [بداية الإضافة] --- ربط زر إنشاء التقرير ---
+
+/**
+ * [--- إضافة ---]
+ * تهيئة مستمع الأحداث لزر إنشاء تقرير المبيعات في صفحة السجل.
+ * يجب استدعاء هذه الدالة عند عرض صفحة السجل/التقارير.
+ */
+export function initializeRecordsPageListeners() {
+    const generateReportBtn = document.getElementById('generate-report-btn'); // تأكد من أن هذا هو ID الزر الصحيح في HTML
+
+    if (generateReportBtn) {
+        // إزالة المستمع القديم أولاً لمنع التكرار والإضافة المتعددة
+        generateReportBtn.replaceWith(generateReportBtn.cloneNode(true));
+        document.getElementById('generate-report-btn').addEventListener('click', async () => {
+            // استخدام الفلاتر الموجودة بالفعل في الصفحة
+            const timeFilter = document.getElementById('time-filter-type').value;
+            const monthFilter = document.getElementById('report-month-picker').value;
+            const dayFilter = document.getElementById('report-day-picker').value;
+
+            let reportStartDate, reportEndDate;
+            let formattedStartDate, formattedEndDate;
+
+            if (timeFilter === 'day' && dayFilter) {
+                reportStartDate = new Date(dayFilter);
+                reportEndDate = new Date(dayFilter);
+            } else if (timeFilter === 'month' && monthFilter) {
+                reportStartDate = new Date(monthFilter + '-01');
+                reportEndDate = new Date(reportStartDate.getFullYear(), reportStartDate.getMonth() + 1, 0);
+            } else {
+                alert('Please select a specific day or month to generate a report.'); // يمكنك تحسين هذه الرسالة
+                return;
+            }
+
+            reportStartDate.setHours(0, 0, 0, 0);
+            reportEndDate.setHours(23, 59, 59, 999);
+
+            formattedStartDate = reportStartDate.toLocaleDateString('en-CA');
+            formattedEndDate = reportEndDate.toLocaleDateString('en-CA');
+
+            // فلترة المبيعات (sales) بدلاً من الإيصالات (receipts)
+            const filteredSales = state.sales.filter(s => {
+                const saleDate = new Date(s.createdAt);
+                return saleDate >= reportStartDate && saleDate <= reportEndDate;
+            });
+
+            const filteredDamagedItems = state.defects.filter(item => {
+                const itemDate = new Date(item.date);
+                return itemDate >= reportStartDate && itemDate <= reportEndDate;
+            });
+
+            // إظهار مؤشر تحميل (اختياري)
+            // showLoader('Generating report...');
+
+            // استدعاء الدالة لإنشاء PDF بالبيانات المفلترة
+            await generateSalesReportPDF(filteredSales, filteredDamagedItems, soldItemsSummaryArray, formattedStartDate, formattedEndDate);
+            // إخفاء مؤشر التحميل (اختياري)
+            // hideLoader();
+        });
+    } else {
+        console.warn('Generate report button not found on this page.');
+    }
+}
+// --- [نهاية الإضافة] ---

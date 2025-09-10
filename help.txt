@@ -1,0 +1,79 @@
+# الخطوات التالية لنشر تطبيقك على الويب
+
+تهانينا! لقد تم تعديل الكود ليعمل كتطبيق ويب. الآن، اتبع هذه الخطوات بالترتيب لنشر التطبيق.
+
+### الخطوة 1: تجهيز مشروع Firebase
+
+لأن التطبيق سيعمل الآن من المتصفح، يجب تفعيل **Firebase Authentication** ووضع **قواعد أمان** لحماية قاعدة بياناتك.
+
+1.  **اذهب إلى [Firebase Console](https://console.firebase.google.com/)** وافتح مشروعك (`baz-sport-store`).
+
+2.  **تفعيل Authentication:**
+    * من القائمة الجانبية، اذهب إلى `Authentication`.
+    * اضغط على `Get started`.
+    * من قائمة `Sign-in method`، اختر `Email/Password` وقم بتفعيله (`Enable`).
+    * **مهم:** يجب إنشاء حساب للمستخدمين الحاليين. اذهب إلى تبويب `Users` واضغط `Add user`.
+        * **للمستخدم `BAZ`:** أدخل الإيميل `BAZ@bazsport.com` وكلمة السر `admin123` (أو كلمة السر الحالية).
+        * **لباقي المستخدمين:** أنشئ حسابًا لكل مستخدم بنفس الطريقة (مثلاً `username@bazsport.com`). هذا ضروري ليعمل نظام تسجيل الدخول الجديد.
+
+3.  **تحديث قواعد الأمان (Security Rules):**
+    * من القائمة الجانبية، اذهب إلى `Firestore Database`.
+    * اختر تبويب `Rules`.
+    * امسح القواعد الحالية والصق القواعد التالية. هذه القواعد تسمح فقط للمستخدمين المسجلين بقراءة وكتابة البيانات.
+        ```
+        rules_version = '2';
+        service cloud.firestore {
+          match /databases/{database}/documents {
+            // اسمح للمستخدمين المسجلين فقط بالوصول لجميع البيانات
+            match /{document=**} {
+              allow read, write: if request.auth != null;
+            }
+          }
+        }
+        ```
+    * اضغط `Publish`.
+
+### الخطوة 2: تجهيز الملفات للنشر
+
+أنشئ مجلدًا جديدًا على جهازك (مثلاً `baz-sport-web`) وضع فيه الملفات التالية **فقط**:
+
+* `index.html` (المعدل)
+* `login.html` (المعدل)
+* `users.html` (المعدل)
+* `booking-receipt.html`
+* `receipt.html`
+* `logo.png`
+* مجلد `js/` وبداخله:
+    * `firebase-init.js` (الجديد)
+    * `api.js` (المعدل)
+    * `events.js` (المعدل)
+    * `login.js` (المعدل)
+    * `renderer.js` (المعدل)
+    * `ui.js`
+    * `state.js`
+    * `users.js` (المعدل)
+    * `utils.js`
+* مجلد `libs/` وبداخله كل ملفات المكتبات (`tailwindcss.js`, `jspdf.umd.min.js`, etc.).
+* مجلد `fonts/` (إذا كنت تستخدم خطوطًا محلية).
+
+**ملاحظة هامة:** لا تقم بتضمين `main.js`, `preload.js`, `package.json`, أو مجلد `node_modules`.
+
+### الخطوة 3: النشر على GitHub Pages
+
+1.  **إنشاء مستودع جديد على GitHub:**
+    * اذهب إلى حسابك على GitHub وأنشئ مستودعًا جديدًا (repository). اجعله **Public**.
+
+2.  **رفع الملفات:**
+    * ارفع كل الملفات والمجلدات التي جهزتها في الخطوة السابقة إلى هذا المستودع.
+
+3.  **تفعيل GitHub Pages:**
+    * في صفحة المستودع على GitHub، اذهب إلى `Settings` (الإعدادات).
+    * من القائمة الجانبية، اختر `Pages`.
+    * تحت قسم `Build and deployment`، في `Source`، اختر `Deploy from a branch`.
+    * تأكد من أن الـ `Branch` هو `main` (أو `master`) والمجلد هو `/ (root)`.
+    * اضغط `Save`.
+
+4.  **الوصول للتطبيق:**
+    * انتظر بضع دقائق. ستظهر رسالة خضراء في نفس الصفحة تحتوي على رابط تطبيقك.
+    * الرابط سيكون بالشكل التالي: `https://<your-username>.github.io/<repository-name>/`
+    * افتح الرابط من أي متصفح على الكمبيوتر أو الموبايل للوصول للتطبيق. ابدأ بصفحة `login.html`: `https://<your-username>.github.io/<repository-name>/login.html`
