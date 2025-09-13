@@ -2,7 +2,10 @@
 <html>
 
 <head>
-    <title>Booking Invoice</title>
+    <title>Receipt</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@700&display=swap" rel="stylesheet">
     <style>
         body {
             /* تم تعديل الخط ليكون أكثر سماكة */
@@ -45,6 +48,8 @@
             margin-top: 0;
             margin-bottom: 5px;
             color: #000;
+            font-family: 'Cairo', sans-serif;
+            /* A better font for the title */
         }
 
         h2 {
@@ -73,9 +78,26 @@
             margin: 3px 0;
         }
 
+        .totals p.hidden {
+            display: none;
+        }
+
         .totals {
             margin-top: 20px;
             text-align: right;
+        }
+
+        .totals-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-weight: 700;
+            text-align: right;
+            margin-bottom: 10px;
+        }
+
+        .totals-table td {
+            border: none;
+            padding: 2px 0;
         }
 
         .logo-container {
@@ -110,6 +132,15 @@
             margin-bottom: 10px;
         }
 
+        .ltr {
+            direction: ltr;
+            text-align: left;
+        }
+
+        .rtl {
+            direction: rtl;
+            text-align: right;
+        }
 
         /* ----- إعدادات خاصة بالطباعة فقط ----- */
         @media print {
@@ -152,20 +183,16 @@
             <img src="../build/black-icon.png" alt="Baz Sport Logo" class="logo">
         </div>
         <h1>الباز سبورت</h1>
-        <div class="info">
-            <p>التاريخ: {{bookingDate}}</p>
-            <p>رقم الحجز: {{bookingId}}</p>
-            <p>البائع: {{username}}</p>
+        <p>Baz Sport</p>
+        <div class="info ltr">
+            <p>Date: {{saleDate}}</p>
+            <p>Receipt ID: {{saleId}}</p>
+            <p>Cashier: {{username}}</p>
         </div>
 
-        <div class="customer-info">
-            <p><strong>العميل:</strong> {{customerName}}</p>
-            <p><strong>الهاتف:</strong> {{customerPhone}}</p>
-            <p><strong>العنوان:</strong> {{customerAddress}}</p>
-            <p><strong>المدينة:</strong> {{customerCity}}</p>
-        </div>
+        {{customerInfo}}
 
-        <h2>حجز</h2>
+        <h2>مبيعات</h2>
         <table>
             <thead>
                 <tr>
@@ -180,20 +207,74 @@
             </tbody>
         </table>
 
+        {{returnsSection}}
+
         <div class="totals">
-            <p><strong>المجموع الفرعي:</strong> {{subtotal}} جنيه</p>
-            <p><strong>العربون المدفوع:</strong> {{deposit}} جنيه </p>
-            <hr>
-            <p><strong>المبلغ المتبقي:</strong> {{amountDue}} جنيه</p>
+            <table class="totals-table">
+                <tbody>
+                    <tr>
+                        <td><strong>المجموع الفرعي:</strong></td>
+                        <td>{{subtotal}} جنيه</td>
+                    </tr>
+                    <tr class="discount-row {{#if_zero discountAmount}}hidden{{/if_zero}}">
+                        <td><strong>الخصم:</strong></td>
+                        <td>{{discountAmount}} جنيه</td>
+                    </tr>
+                    <tr class="delivery-row {{#if_zero deliveryFee}}hidden{{/if_zero}}">
+                        <td><strong>رسوم التوصيل:</strong></td>
+                        <td>{{deliveryFee}} جنيه</td>
+                    </tr>
+                    <tr class="returns-row {{#if_zero totalReturns}}hidden{{/if_zero}}">
+                        <td><strong>إجمالي المرتجعات:</strong></td>
+                        <td>{{totalReturns}} جنيه</td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <hr>
+                        </td>
+                    </tr>
+                    <tr id="final-total-section"></tr>
+                    <tr>
+                        <td><strong>المدفوع:</strong></td>
+                        <td>{{paidAmount}} جنيه</td>
+                    </tr>
+                    <tr>
+                        <td><strong>الباقي:</strong></td>
+                        <td>{{changeAmount}} جنيه</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
 
         <div class="footer">
             <p>بورسعيد: شارع 23 امام نادي القوات البحرية</p>
-            <p>شكراً لحجزك من الباز سبورت! ❤️</p>
+            <p> ❤️ شكراً لشرائك من الباز سبورت! </p>
             <p>System by: Omar Abdelall</p>
             <p>Phone No: 01009715199</p>
         </div>
     </div>
+    <script>
+        window.onload = function () {
+            try {
+                // Hide elements if their value is zero
+                function hideIfZero(selector, value) {
+                    if (parseFloat(value) === 0) {
+                        const element = document.querySelector(selector);
+                        if (element) {
+                            element.classList.add('hidden');
+                        }
+                    }
+                }
+
+                hideIfZero('.discount-row', '{{discountAmount}}');
+                hideIfZero('.delivery-row', '{{deliveryFee}}');
+                hideIfZero('.returns-row', '{{totalReturns}}');
+
+            } catch (e) {
+                console.error('JsBarcode Error:', e);
+            }
+        };
+    </script>
 </body>
 
 </html>
