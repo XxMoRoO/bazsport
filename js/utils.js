@@ -156,18 +156,10 @@ export async function generateSoldItemsReportPDF(filteredSales) {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
-        // --- تضمين الخطوط العربية أولاً ---
-        const fontRegular = await fetch('./fonts/Tajawal-Regular.ttf').then(res => res.arrayBuffer());
-        const fontBold = await fetch('./fonts/Tajawal-Bold.ttf').then(res => res.arrayBuffer());
+        // Use standard font for English report
+        doc.setFont('helvetica', 'normal');
 
-        doc.addFileToVFS('Tajawal-Regular.ttf', btoa(String.fromCharCode.apply(null, new Uint8Array(fontRegular))));
-        doc.addFileToVFS('Tajawal-Bold.ttf', btoa(String.fromCharCode.apply(null, new Uint8Array(fontBold))));
-
-        doc.addFont('Tajawal-Regular.ttf', 'Tajawal', 'normal');
-        doc.addFont('Tajawal-Bold.ttf', 'Tajawal', 'bold');
-        doc.setFont('Tajawal', 'bold');
-
-        // --- جمع وتحليل بيانات المبيعات ---
+        // --- Collect and analyze sales data ---
         const soldItemsSummary = {};
         const allItems = filteredSales.flatMap(sale =>
             sale.items
@@ -204,40 +196,39 @@ export async function generateSoldItemsReportPDF(filteredSales) {
 
         const sortedItems = Object.values(soldItemsSummary).sort((a, b) => b.totalQuantitySold - a.totalQuantitySold);
 
-        // --- بناء تقرير PDF ---
+        // --- Build PDF Report ---
         doc.setFontSize(20);
-        doc.text("تقرير مبيعات القطع", 105, 20, { align: 'center' });
+        doc.text("Sold Items Report", 105, 20, { align: 'center' });
 
         let finalY = 30;
 
-        // دالة مساعدة لطباعة جدول لكل صنف
+        // Helper function to print a table for each item
         const printItemDetails = (item) => {
             doc.setFontSize(14);
-            doc.setFont('Tajawal', 'bold');
-            doc.text(`${item.name} (${item.color} / ${item.size}) - ${item.category}`, 195, finalY, { align: 'right' });
+            doc.setFont('helvetica', 'bold');
+            doc.text(`${item.name} (${item.color} / ${item.size}) - ${item.category}`, 15, finalY);
 
             doc.setFontSize(10);
-            doc.setFont('Tajawal', 'normal');
+            doc.setFont('helvetica', 'normal');
             finalY += 7;
-            doc.text(`إجمالي الكمية المباعة: ${item.totalQuantitySold} | إجمالي القيمة: ${item.totalValue.toFixed(2)} جنيه`, 195, finalY, { align: 'right' });
+            doc.text(`Total Quantity Sold: ${item.totalQuantitySold} | Total Value: ${item.totalValue.toFixed(2)} EGP`, 15, finalY);
 
             finalY += 5;
 
             const invoicesTableData = item.invoices.map(inv => [
-                `${inv.unitPrice.toFixed(2)} جنيه`,
-                inv.quantity,
+                inv.saleId,
                 new Date(inv.date).toLocaleDateString(),
-                inv.saleId
+                inv.quantity,
+                `${inv.unitPrice.toFixed(2)} EGP`
             ]);
 
             doc.autoTable({
                 startY: finalY + 5,
-                head: [['القيمة', 'الكمية', 'التاريخ', 'رقم الفاتورة']].map(col => col.reverse()),
-                body: invoicesTableData.map(row => row.reverse()),
+                head: [['Invoice ID', 'Date', 'Quantity', 'Value']],
+                body: invoicesTableData,
                 theme: 'grid',
-                headStyles: { font: 'Tajawal', fontStyle: 'bold', halign: 'right', fillColor: [44, 62, 80], textColor: [255, 255, 255] },
-                bodyStyles: { font: 'Tajawal', fontStyle: 'normal', halign: 'right' },
-                columnStyles: { 0: { halign: 'center' }, 1: { halign: 'center' }, 2: { halign: 'right' }, 3: { halign: 'right' } },
+                headStyles: { font: 'helvetica', fontStyle: 'bold', halign: 'center', fillColor: [44, 62, 80], textColor: [255, 255, 255] },
+                bodyStyles: { font: 'helvetica', fontStyle: 'normal', halign: 'center' },
             });
 
             finalY = doc.lastAutoTable.finalY + 10;
@@ -456,3 +447,4 @@ export async function generateSupplierShippingPDF(supplier, items) {
 
     doc.save(`Shipping_Invoice_${supplier.name}_${new Date().toISOString().slice(0, 10)}.pdf`);
 }
+

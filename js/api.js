@@ -132,7 +132,7 @@ export function printBarcode(barcodeValue, productName, color, size, price) {
                         try {
                             JsBarcode("#barcode", "${barcodeValue}", {
                                 format: "CODE128", 
-                                width: 1.5, 
+                                width: 2.5, 
                                 height: 35, 
                                 displayValue: true, 
                                 fontSize: 12, 
@@ -883,3 +883,4 @@ export async function exportShiftToPDF(shift) {
         hideLoader();
     }
 }
+
